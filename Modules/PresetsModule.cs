@@ -221,6 +221,8 @@ namespace PoppyMenu
         public bool MovementNoclip { get; set; }
         public bool MovementAlwaysSprint { get; set; }
         public bool MovementJumpPack { get; set; }
+        public bool MovementBhop { get; set; }
+        public bool MovementTeleportToPing { get; set; }
 
         public bool GodMode { get; set; }
         public bool BuddhaMode { get; set; }
@@ -274,6 +276,8 @@ namespace PoppyMenu
                 MovementNoclip = MovementModule.NoClip,
                 MovementAlwaysSprint = MovementModule.AlwaysSprint,
                 MovementJumpPack = MovementModule.JumpPack,
+                MovementBhop = MovementModule.Bhop,
+                MovementTeleportToPing = MovementModule.TeleportToPing,
 
                 GodMode = PlayerModule.GodMode,
                 BuddhaMode = Safety.Buddha,
@@ -327,6 +331,8 @@ namespace PoppyMenu
             MovementModule.NoClip = MovementNoclip;
             MovementModule.AlwaysSprint = MovementAlwaysSprint;
             MovementModule.JumpPack = MovementJumpPack;
+            MovementModule.Bhop = MovementBhop;
+            MovementModule.TeleportToPing = MovementTeleportToPing;
 
             PlayerModule.GodMode = GodMode;
             Safety.Buddha = BuddhaMode;

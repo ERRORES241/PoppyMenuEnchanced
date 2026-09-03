@@ -264,9 +264,24 @@ namespace PoppyMenu
             if (body == null || body == me) return false;
             if (body.healthComponent == null || !body.healthComponent.alive) return false;
 
-            TeamIndex t = body.teamComponent != null ? body.teamComponent.teamIndex : TeamIndex.Monster;
+            if (body.teamComponent == null) return false;
+
+            TeamIndex t = body.teamComponent.teamIndex;
+            if (t == TeamIndex.None || t == TeamIndex.Neutral) return false;
             if (t == myTeam) return false;
             if (t == TeamIndex.Player && myTeam == TeamIndex.Player) return false;
+
+            string bName = body.name;
+            if (!string.IsNullOrEmpty(bName))
+            {
+                if (bName.IndexOf("Rock", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    bName.IndexOf("Prop", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    bName.IndexOf("Boulder", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    bName.IndexOf("Pillar", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    bName.IndexOf("Pot", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    bName.IndexOf("Barrel", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return false;
+            }
 
             return true;
         }
@@ -274,6 +289,11 @@ namespace PoppyMenu
         private static bool IsValidTarget(Ray aim, Camera cam)
         {
             if (Target == null || Target.healthComponent == null || !Target.healthComponent.alive) return false;
+            CharacterBody me = PlayerContext.Body;
+            if (me == null || Target.healthComponent.body == null) return false;
+            TeamIndex myTeam = me.teamComponent != null ? me.teamComponent.teamIndex : TeamIndex.Player;
+            if (!IsHostile(me, myTeam, Target.healthComponent.body)) return false;
+
             Vector3 targetPos = Target.transform.position;
             Vector3 to = targetPos - aim.origin;
             if (to.sqrMagnitude > MaxRange * MaxRange) return false;

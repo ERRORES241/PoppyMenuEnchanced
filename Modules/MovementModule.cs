@@ -13,10 +13,12 @@ namespace PoppyMenu
         internal static bool AlwaysSprint;
         internal static bool JumpPack;
         internal static bool Bhop;
+        internal static bool TeleportToPing;
 
         internal static void ToggleFlight() => Flight = !Flight;
         internal static void ToggleSprint() => AlwaysSprint = !AlwaysSprint;
         internal static void ToggleNoClip() => NoClip = !NoClip;
+        internal static void ToggleTeleportToPing() => TeleportToPing = !TeleportToPing;
 
         private bool _gravityOff;
         private bool _collisionsDisabled;
@@ -96,6 +98,111 @@ namespace PoppyMenu
         internal static void Init()
         {
             On.RoR2.PlayerCharacterMasterController.FixedUpdate += PlayerCharacterMasterController_FixedUpdate;
+            On.RoR2.PingerController.SetCurrentPing += PingerController_SetCurrentPing;
+        }
+
+        private static void PingerController_SetCurrentPing(On.RoR2.PingerController.orig_SetCurrentPing orig, PingerController self, PingerController.PingInfo newPingInfo)
+        {
+            orig(self, newPingInfo);
+
+            if (TeleportToPing && self != null && self.hasAuthority && newPingInfo.active)
+            {
+                TeleportToPingInfo(newPingInfo);
+            }
+        }
+
+        internal static void TeleportToCurrentPing()
+        {
+            if (!PlayerContext.InGame || !PlayerContext.HasBody)
+            {
+                Notify.Push("Not in game");
+                return;
+            }
+
+            CharacterMaster master = PlayerContext.Master;
+            if (master == null)
+            {
+                Notify.Push("No master");
+                return;
+            }
+
+            PingerController pinger = master.GetComponent<PingerController>();
+            if (pinger == null || !pinger.currentPing.active)
+            {
+                Notify.Push("No active ping");
+                return;
+            }
+
+            TeleportToPingInfo(pinger.currentPing);
+        }
+
+        internal static void TeleportToPingInfo(PingerController.PingInfo pingInfo)
+        {
+            if (!PlayerContext.HasBody) return;
+            CharacterBody body = PlayerContext.Body;
+
+            Vector3 targetPos;
+            if (pingInfo.targetGameObject != null)
+            {
+                targetPos = pingInfo.targetGameObject.transform.position + Vector3.up * 1f;
+            }
+            else
+            {
+                targetPos = pingInfo.origin;
+                if (pingInfo.normal.sqrMagnitude > 0.001f)
+                    targetPos += pingInfo.normal * 0.5f;
+                else
+                    targetPos += Vector3.up * 0.5f;
+            }
+
+            ExecuteTeleport(body, targetPos, "Teleported to ping");
+        }
+
+        internal static void TeleportToCursor()
+        {
+            if (!PlayerContext.InGame || !PlayerContext.HasBody)
+            {
+                Notify.Push("Not in game");
+                return;
+            }
+
+            CharacterBody body = PlayerContext.Body;
+            Ray aim = PlayerContext.AimRay();
+
+            LayerMask mask = (LayerMask)((int)LayerIndex.world.mask | (int)LayerIndex.entityPrecise.mask);
+            if (Physics.Raycast(aim, out RaycastHit hit, 1000f, mask, QueryTriggerInteraction.Ignore))
+            {
+                Vector3 targetPos = hit.point + (hit.normal.sqrMagnitude > 0.001f ? hit.normal * 0.5f : Vector3.up * 0.5f);
+                ExecuteTeleport(body, targetPos, "Teleported to cursor");
+            }
+            else
+            {
+                Notify.Push("No surface in view");
+            }
+        }
+
+        private static void ExecuteTeleport(CharacterBody body, Vector3 targetPos, string message)
+        {
+            if (body == null) return;
+
+            TeleportHelper.TeleportBody(body, targetPos);
+
+            if (body.characterMotor != null)
+            {
+                body.characterMotor.velocity = Vector3.zero;
+            }
+
+            try
+            {
+                GameObject effectPrefab = LegacyResourcesAPI.Load<GameObject>("Prefabs/Effects/TeleportOutBoom");
+                if (effectPrefab != null)
+                {
+                    EffectManager.SimpleEffect(effectPrefab, targetPos, Quaternion.identity, false);
+                }
+            }
+            catch { }
+
+            Notify.Push(message);
         }
 
         private static void PlayerCharacterMasterController_FixedUpdate(On.RoR2.PlayerCharacterMasterController.orig_FixedUpdate orig, PlayerCharacterMasterController self)
@@ -141,6 +248,19 @@ namespace PoppyMenu
             Bhop = Widgets.Toggle("BunnyHop (Auto-jump on land)", Bhop);
             ModConfig.FlightSpeed.Value = Widgets.Slider("Fly Speed", ModConfig.FlightSpeed.Value, 5f, 150f);
             Widgets.Hint("Fly: WASD move, Space up, Left Ctrl down. You can still aim and fire while flying.");
+            Widgets.SectionEnd();
+
+            Widgets.SectionBegin("Teleportation");
+            TeleportToPing = Widgets.Toggle("Auto Teleport on Ping", TeleportToPing);
+            Widgets.Hint("Instantly teleports your survivor to wherever you place a ping in-game.");
+            if (Widgets.Button("Teleport to Current Ping"))
+            {
+                TeleportToCurrentPing();
+            }
+            if (Widgets.Button("Teleport to Cursor"))
+            {
+                TeleportToCursor();
+            }
             Widgets.SectionEnd();
         }
     }

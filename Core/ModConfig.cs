@@ -72,6 +72,7 @@ namespace PoppyMenu
         internal static ConfigEntry<bool> MovementAlwaysSprint;
         internal static ConfigEntry<bool> MovementJumpPack;
         internal static ConfigEntry<bool> MovementBhop;
+        internal static ConfigEntry<bool> MovementTeleportToPing;
         internal static ConfigEntry<bool> FovOverride;
         internal static ConfigEntry<float> FovValue;
 
@@ -176,6 +177,7 @@ namespace PoppyMenu
             MovementAlwaysSprint = cfg.Bind("Movement", "AlwaysSprint", false, "Always sprint toggle.");
             MovementJumpPack = cfg.Bind("Movement", "JumpPack", false, "Jump pack toggle.");
             MovementBhop = cfg.Bind("Movement", "Bhop", false, "BunnyHop toggle.");
+            MovementTeleportToPing = cfg.Bind("Movement", "TeleportToPing", false, "Teleport to ping toggle.");
             FovOverride = cfg.Bind("Movement", "FovOverride", false, "FOV Changer toggle.");
             FovValue = cfg.Bind("Movement", "FovValue", 90f, new ConfigDescription("Field of view.", new AcceptableValueRange<float>(60f, 140f)));
 
@@ -242,6 +244,7 @@ namespace PoppyMenu
             MovementModule.AlwaysSprint = MovementAlwaysSprint.Value;
             MovementModule.JumpPack = MovementJumpPack.Value;
             MovementModule.Bhop = MovementBhop.Value;
+            MovementModule.TeleportToPing = MovementTeleportToPing.Value;
             RenderModule.FovOverride = FovOverride.Value;
             RenderModule.FovValue = FovValue.Value;
 
@@ -309,6 +312,7 @@ namespace PoppyMenu
             MovementAlwaysSprint.Value = MovementModule.AlwaysSprint;
             MovementJumpPack.Value = MovementModule.JumpPack;
             MovementBhop.Value = MovementModule.Bhop;
+            MovementTeleportToPing.Value = MovementModule.TeleportToPing;
             FovOverride.Value = RenderModule.FovOverride;
             FovValue.Value = RenderModule.FovValue;
 

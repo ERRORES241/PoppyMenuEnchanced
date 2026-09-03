@@ -1,8 +1,8 @@
 {
-  "name": "PoppyMenu",
-  "version_number": "2.2.3",
-  "website_url": "https://github.com/PoppyLippyy/PoppyMenu",
-  "description": "A cheat and debug menu for Risk of Rain 2 with items, spawning, stats, run control, aimbot, ESP, presets, and more.",
+  "name": "PoppyMenuEnchanced",
+  "version_number": "2.6",
+  "website_url": "https://github.com/ERRORESSS/PoppyMenu",
+  "description": "An enhanced cheat and debug menu for Risk of Rain 2 with items, spawning, stats, run control, aimbot, ESP, presets, and more.",
   "dependencies": [
     "bbepis-BepInExPack-5.4.2121",
     "RiskofThunder-R2API_Core-5.3.0",

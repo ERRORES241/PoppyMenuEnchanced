@@ -471,6 +471,7 @@ namespace PoppyMenu
             if (MovementModule.AlwaysSprint)   _cachedActiveList.Add("Always Sprint");
             if (MovementModule.JumpPack)       _cachedActiveList.Add("Jump Pack");
             if (MovementModule.Bhop)           _cachedActiveList.Add("BunnyHop");
+            if (MovementModule.TeleportToPing) _cachedActiveList.Add("TP to Ping");
             if (FunModule.RailgunnerInstaCharge) _cachedActiveList.Add("Insta Ult Charge");
             if (FunModule.RailgunnerNoUltCooldown) _cachedActiveList.Add("No Ult Cooldown");
             if (FunModule.RailgunnerUltSpam)    _cachedActiveList.Add("Ult Spam");

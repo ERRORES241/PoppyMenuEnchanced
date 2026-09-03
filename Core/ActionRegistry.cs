@@ -52,6 +52,10 @@ namespace PoppyMenu
             Add("move.noclip", "Movement", "No-clip", MovementModule.ToggleNoClip);
             Add("move.sprint", "Movement", "Always sprint", MovementModule.ToggleSprint);
             Add("move.jump", "Movement", "Jump pack", () => MovementModule.JumpPack = !MovementModule.JumpPack);
+            Add("move.bhop", "Movement", "BunnyHop", () => MovementModule.Bhop = !MovementModule.Bhop);
+            Add("move.tp_ping_auto", "Movement", "Auto teleport on ping", MovementModule.ToggleTeleportToPing);
+            Add("move.tp_ping", "Movement", "Teleport to current ping", MovementModule.TeleportToCurrentPing);
+            Add("move.tp_cursor", "Movement", "Teleport to cursor", MovementModule.TeleportToCursor);
 
             Add("aim.toggle", "Aimbot", "Aimbot", () => Aim.Enabled = !Aim.Enabled);
             Add("aim.magic", "Aimbot", "Magic bullet", () => Aim.MagicBullet = !Aim.MagicBullet);

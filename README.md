@@ -1,6 +1,6 @@
-# Poppy Menu (Enhanced)
+# PoppyMenuEnchanced (v2.6)
 
-An in-game cheat and debug menu for Risk of Rain 2. Press Insert to open it.
+An enhanced in-game cheat and debug menu for Risk of Rain 2. Press Insert to open it.
 
 A personal project, open source under the MIT license. Pull requests and ideas are welcome.
 
@@ -26,6 +26,10 @@ Organized into clean top-level tabs and focused sub-pages.
 - **Flight & No-Clip:** Free flight movement across the map.
 - **Attack-Aware Always Sprint:** Forces sprinting when moving without interrupting attack/skill animations or standing idle.
 - **BunnyHop (Auto-Jump) & Jump Pack:** Integrated auto-jumping that preserves Wax Quail momentum and Headstomper mechanics.
+- **Teleportation:**
+  - **Auto Teleport on Ping:** Automatically teleports the survivor to any placed ping (terrain or targeted entity) with vertical offset correction and velocity dampening.
+  - **Teleport to Current Ping:** On-demand teleport to the player's active ping coordinate via button or keybind.
+  - **Teleport to Cursor:** Instantly teleports to the targeted surface along the crosshair aim ray.
 
 ### Player
 Main controls for the local character across three sub-pages:
@@ -55,7 +59,7 @@ Dedicated survivor-specific utilities and mechanics:
 - **Presets & Macros:** Save toggle profiles, export/import preset codes, and build custom multi-action execution chains bound to single hotkeys.
 
 ## Console Commands
-Compatible with standard in-game console commands used by DebugToolkit: `give_item`, `give_equip`, `give_money`, `give_lunar`, `give_buff`, `remove_item`, `random_items`, `spawn_ai`, `spawn_body`, `spawn_interactable`, `spawn_as`, `no_enemies`, `god`, `buddha`, `noclip`, `kill_all`, `true_kill`, `respawn`, `heal`, `hurt`, `teleport_on_cursor`, `change_team`, `next_stage`, `fixed_time`, `stop_timer`, `charge_zone`, `set_artifact`, `time_scale`, `team_set_level`, and `run_set_stages_cleared`.
+Compatible with standard in-game console commands used by DebugToolkit: `give_item`, `give_equip`, `give_money`, `give_lunar`, `give_buff`, `remove_item`, `random_items`, `spawn_ai`, `spawn_body`, `spawn_interactable`, `spawn_as`, `no_enemies`, `god`, `buddha`, `noclip`, `flight`, `sprint`, `bhop`, `tp_ping`, `tp_cursor`, `tp_ping_auto`, `kill_all`, `true_kill`, `respawn`, `heal`, `hurt`, `teleport_on_cursor`, `change_team`, `next_stage`, `fixed_time`, `stop_timer`, `charge_zone`, `set_artifact`, `time_scale`, `team_set_level`, and `run_set_stages_cleared`.
 
 ## Controls
 - Default menu key: `Insert` (rebindable in Settings or Keybinds).

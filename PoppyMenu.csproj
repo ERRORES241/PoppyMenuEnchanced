@@ -2,16 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <AssemblyName>PoppyMenu</AssemblyName>
-    <Product>PoppyMenu</Product>
-    <Version>2.2.3</Version>
+    <AssemblyName>PoppyMenuEnchanced</AssemblyName>
+    <Product>PoppyMenuEnchanced</Product>
+    <Version>2.6</Version>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>disable</Nullable>
     <RootNamespace>PoppyMenu</RootNamespace>
 
-    <BepInExPluginGuid>com.poppy.poppymenu</BepInExPluginGuid>
-    <BepInExPluginName>Poppy Menu</BepInExPluginName>
+    <BepInExPluginGuid>com.poppy.poppymenuenchanced</BepInExPluginGuid>
+    <BepInExPluginName>PoppyMenuEnchanced</BepInExPluginName>
     <BepInExPluginVersion>$(Version)</BepInExPluginVersion>
 
     <NoWarn>$(NoWarn);CS0436;CS0618;CS0612;NU1701;MSB3277</NoWarn>
@@ -34,5 +34,23 @@
     <Compile Remove="tools/**/*.cs" />
     <Compile Remove="src/**/*.cs" />
   </ItemGroup>
+
+  <Target Name="PackageMod" AfterTargets="Build">
+    <PropertyGroup>
+      <AuthorName>ERRORESSS</AuthorName>
+      <ZipFileName>$(AuthorName)-$(AssemblyName)-$(Version).zip</ZipFileName>
+      <DistDir>$(ProjectDir)dist\</DistDir>
+      <StagingDir>$(DistDir)staging\</StagingDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(DistDir);$(StagingDir)" />
+
+    <Copy SourceFiles="manifest.json;icon.png;README.md;CHANGELOG.md;LICENSE;$(TargetPath)" DestinationFolder="$(StagingDir)" SkipUnchangedFiles="false" />
+
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Compress-Archive -Path '$(StagingDir)*' -DestinationPath '$(DistDir)$(ZipFileName)' -Force&quot;" />
+    <RemoveDir Directories="$(StagingDir)" />
+
+    <Message Text="[BUILD] Packaged mod ZIP for r2modmanager: $(DistDir)$(ZipFileName)" Importance="high" />
+  </Target>
 
 </Project>

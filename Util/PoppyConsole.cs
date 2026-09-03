@@ -131,6 +131,10 @@ namespace PoppyMenu
             Add("noclip", "[0/1]", "Toggle noclip", a => { MovementModule.NoClip = Flag(a, 0, MovementModule.NoClip); Print("noclip " + MovementModule.NoClip); });
             Add("flight", "[0/1]", "Toggle flight", a => { MovementModule.Flight = Flag(a, 0, MovementModule.Flight); Print("flight " + MovementModule.Flight); });
             Add("sprint", "[0/1]", "Toggle always-sprint", a => { MovementModule.AlwaysSprint = Flag(a, 0, MovementModule.AlwaysSprint); Print("sprint " + MovementModule.AlwaysSprint); });
+            Add("bhop", "[0/1]", "Toggle bunnyhop", a => { MovementModule.Bhop = Flag(a, 0, MovementModule.Bhop); Print("bhop " + MovementModule.Bhop); });
+            Add("tp_ping", "", "Teleport to your active ping", a => MovementModule.TeleportToCurrentPing());
+            Add("tp_cursor", "", "Teleport to where you are aiming", a => MovementModule.TeleportToCursor());
+            Add("tp_ping_auto", "[0/1]", "Auto-teleport when placing a ping", a => { MovementModule.TeleportToPing = Flag(a, 0, MovementModule.TeleportToPing); Print("tp_ping_auto " + MovementModule.TeleportToPing); });
             Add("no_enemies", "[0/1]", "Stop enemies from spawning", a => { Safety.NoEnemies = Flag(a, 0, Safety.NoEnemies); Print("no_enemies " + Safety.NoEnemies); });
             Add("lock_exp", "[0/1]", "Stop experience gain", a => { Safety.LockExp = Flag(a, 0, Safety.LockExp); Print("lock_exp " + Safety.LockExp); });
 

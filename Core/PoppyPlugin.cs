@@ -3,12 +3,12 @@ using UnityEngine;
 
 namespace PoppyMenu
 {
-    [BepInPlugin(Guid, "Poppy Menu", Version)]
+    [BepInPlugin(Guid, "PoppyMenuEnchanced", Version)]
     [BepInDependency("com.bepis.r2api.networking")]
     public class PoppyPlugin : BaseUnityPlugin
     {
-        internal const string Guid = "com.poppy.poppymenu";
-        internal const string Version = "2.2.3";
+        internal const string Guid = "com.poppy.poppymenuenchanced";
+        internal const string Version = "2.6";
 
         internal static PoppyPlugin Instance { get; private set; }
 
@@ -34,7 +34,7 @@ namespace PoppyMenu
             go.hideFlags = HideFlags.HideAndDontSave;
             go.AddComponent<PoppyController>();
 
-            Log.Message($"Poppy Menu v{Version} loaded. Press {ModConfig.ToggleMenuKey.Value} to open.");
+            Log.Message($"PoppyMenuEnchanced v{Version} loaded. Press {ModConfig.ToggleMenuKey.Value} to open.");
         }
     }
 }
