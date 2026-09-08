@@ -24,7 +24,6 @@ namespace PoppyMenu
             WorldModule.Init();
             ItemsModule.Init();
             MovementModule.Init();
-            ConsoleCommands.Init();
             BindStore.Load();
             MacroStore.Load();
             HomeLayoutStore.Load();

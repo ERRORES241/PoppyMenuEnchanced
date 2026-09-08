@@ -58,9 +58,6 @@ Dedicated survivor-specific utilities and mechanics:
 - **Keybinds:** Map menu actions, toggles, or macros to keyboard and mouse buttons (including side mouse buttons).
 - **Presets & Macros:** Save toggle profiles, export/import preset codes, and build custom multi-action execution chains bound to single hotkeys.
 
-## Console Commands
-Compatible with standard in-game console commands used by DebugToolkit: `give_item`, `give_equip`, `give_money`, `give_lunar`, `give_buff`, `remove_item`, `random_items`, `spawn_ai`, `spawn_body`, `spawn_interactable`, `spawn_as`, `no_enemies`, `god`, `buddha`, `noclip`, `flight`, `sprint`, `bhop`, `tp_ping`, `tp_cursor`, `tp_ping_auto`, `kill_all`, `true_kill`, `respawn`, `heal`, `hurt`, `teleport_on_cursor`, `change_team`, `next_stage`, `fixed_time`, `stop_timer`, `charge_zone`, `set_artifact`, `time_scale`, `team_set_level`, and `run_set_stages_cleared`.
-
 ## Controls
 - Default menu key: `Insert` (rebindable in Settings or Keybinds).
 - Click and drag title bars to move windows; drag bottom-right handles to resize.

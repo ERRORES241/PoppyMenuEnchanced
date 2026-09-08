@@ -94,16 +94,58 @@ namespace PoppyMenu
             Add("fun.noUltCooldown", "Fun", "No Ult Cooldown", () => FunModule.RailgunnerNoUltCooldown = !FunModule.RailgunnerNoUltCooldown);
             Add("fun.ultSpam", "Fun", "Ult Spam (Every Shot = Ult)", () => FunModule.RailgunnerUltSpam = !FunModule.RailgunnerUltSpam);
 
-            Add("macro.midgame", "Macros", "Mid-game loadout", () => PoppyConsole.Submit("midgame"));
-            Add("macro.lategame", "Macros", "End-game loadout", () => PoppyConsole.Submit("lategame"));
-            Add("macro.dtzoom", "Macros", "Zoom items", () => PoppyConsole.Submit("dtzoom"));
+            Add("macro.midgame", "Macros", "Mid-game loadout", () =>
+            {
+                GiveRandom(20, ItemTier.Tier1);
+                GiveRandom(8, ItemTier.Tier2);
+                GiveRandom(2, ItemTier.Tier3);
+                NetUtil.Do(PoppyOp.GiveMoney, i1: 1000);
+                Notify.Push("Mid-game loadout granted");
+            });
+            Add("macro.lategame", "Macros", "End-game loadout", () =>
+            {
+                GiveRandom(40, ItemTier.Tier1);
+                GiveRandom(20, ItemTier.Tier2);
+                GiveRandom(8, ItemTier.Tier3);
+                GiveRandom(1, ItemTier.Boss);
+                NetUtil.Do(PoppyOp.GiveMoney, i1: 10000);
+                Notify.Push("End-game loadout granted");
+            });
+            Add("macro.dtzoom", "Macros", "Zoom items", () =>
+            {
+                GiveByName("Hoof", 20);
+                GiveByName("Feather", 200);
+                Notify.Push("Zoom items granted");
+            });
 
             Add("tab.player", "Open tab", "Player tab", () => MenuRoot.SelectTabByName("Player"));
             Add("tab.items", "Open tab", "Items tab", () => MenuRoot.SelectTabByName("Items"));
             Add("tab.players", "Open tab", "Players tab", () => MenuRoot.SelectTabByName("Players"));
             Add("tab.fun", "Open tab", "Fun tab", () => MenuRoot.SelectTabByName("Fun"));
-            Add("tab.console", "Open tab", "Console tab", () => MenuRoot.SelectTabByName("Console"));
             Add("tab.keybinds", "Open tab", "Keybinds tab", () => MenuRoot.SelectTabByName("Keybinds"));
+        }
+
+        private static void GiveRandom(int count, ItemTier? tier)
+        {
+            var pool = new List<int>();
+            foreach (var e in Catalogs.Items)
+                if (tier == null || e.Tier == tier.Value) pool.Add((int)e.Index);
+            if (pool.Count == 0) return;
+            count = Mathf.Clamp(count, 1, 1000);
+            for (int i = 0; i < count; i++)
+                NetUtil.Do(PoppyOp.GiveItem, i1: pool[UnityEngine.Random.Range(0, pool.Count)], i2: 1);
+        }
+
+        private static void GiveByName(string name, int count)
+        {
+            foreach (var e in Catalogs.Items)
+            {
+                if (e.Name.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    NetUtil.Do(PoppyOp.GiveItem, i1: (int)e.Index, i2: count);
+                    break;
+                }
+            }
         }
     }
 }

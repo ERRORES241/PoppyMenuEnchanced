@@ -9,7 +9,6 @@ namespace PoppyMenu
     {
         private static int _amount = 1;
         private static float _duration;
-        private static string _command = "";
 
         internal static void Draw(Action<CustomStep> onAdd)
         {
@@ -34,15 +33,6 @@ namespace PoppyMenu
             Widgets.Button("XP +" + _amount, () => Done(onAdd, Steps.Xp(_amount)));
             Widgets.Button("Lunar +" + _amount, () => Done(onAdd, Steps.Lunar(_amount)));
             Widgets.Button("Heal full", () => Done(onAdd, Steps.Heal(0)));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            _command = GUILayout.TextField(_command ?? "", Theme.Search);
-            if (GUILayout.Button("Add command", Theme.Button, GUILayout.Width(110)) && !string.IsNullOrWhiteSpace(_command))
-            {
-                Done(onAdd, Steps.Command(_command.Trim()));
-                _command = "";
-            }
             GUILayout.EndHorizontal();
         }
 

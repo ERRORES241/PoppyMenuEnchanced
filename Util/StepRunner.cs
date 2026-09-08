@@ -35,7 +35,13 @@ namespace PoppyMenu
                     if (s.Amount > 0) NetUtil.Do(PoppyOp.HealAmount, f1: s.Amount);
                     else NetUtil.Do(PoppyOp.HealFull);
                     break;
-                case StepKind.Command: PoppyConsole.Submit(s.Id); break;
+                case StepKind.Command:
+                    if (RoR2.Console.instance != null && !string.IsNullOrEmpty(s.Id))
+                    {
+                        var sender = RoR2.NetworkUser.readOnlyLocalPlayersList.Count > 0 ? RoR2.NetworkUser.readOnlyLocalPlayersList[0] : null;
+                        RoR2.Console.instance.SubmitCmd(sender, s.Id);
+                    }
+                    break;
                 case StepKind.Macro: MacroStore.Run(s.Id); break;
             }
         }

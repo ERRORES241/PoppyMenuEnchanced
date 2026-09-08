@@ -21,7 +21,7 @@ namespace PoppyMenu
             _groups.Add(new TabGroup("Player", new PlayerModule(), new StatsModule(), new ItemsModule()));
             _groups.Add(new TabGroup("World", new WorldModule(), new TeleporterModule(), new SpawnModule(), new RunModule(), new PlayersModule()));
             _groups.Add(new TabGroup("Fun", new FunModule()));
-            _groups.Add(new TabGroup("Settings", new ConfigsModule(), new KeybindsModule(), new SettingsModule(), new MacrosModule(), new ConsoleModule()));
+            _groups.Add(new TabGroup("Settings", new ConfigsModule(), new KeybindsModule(), new SettingsModule(), new MacrosModule()));
 
             foreach (TabGroup g in _groups) _modules.AddRange(g.Pages);
 
@@ -130,7 +130,6 @@ namespace PoppyMenu
             try { InputCapture.Shutdown(); } catch { }
             try { Aim.Shutdown(); } catch { }
             try { Safety.Shutdown(); } catch { }
-            try { ConsoleCommands.Shutdown(); } catch { }
             foreach (PoppyModule m in _modules)
             {
                 try { m.OnUnload(); } catch { }

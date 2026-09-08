@@ -6,6 +6,7 @@
 - Added 100% Shrine of Chance win rate and infinite shrine uses.
 - Added configurable Sale Star drop multiplier.
 - Restructured menu layout, added native BunnyHop, and updated packaging.
+- Removed built-in console tab and console command integration.
 
 ## 2.2.3
 - Added a short note about AI use and a link to the source repo on GitHub.
