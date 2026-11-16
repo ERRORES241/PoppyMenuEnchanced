@@ -38,6 +38,8 @@ namespace PoppyMenu
         private static PressurePlateController[] _plates = new PressurePlateController[0];
         private static ShrineCleanseBehavior[] _cleansePools = new ShrineCleanseBehavior[0];
         private static SceneDef _lastStageScene;
+        private const float DefaultFov = 60f; // CameraRigController.baseFov default
+        private static bool _fovApplied;
 
         internal override void Tick()
         {
@@ -48,13 +50,15 @@ namespace PoppyMenu
             }
 
             // ── Camera FOV Changer ──
-            if (FovOverride)
+            if (FovOverride || _fovApplied)
             {
+                float fov = FovOverride ? FovValue : DefaultFov;
                 foreach (var cameraRig in CameraRigController.readOnlyInstancesList)
                 {
                     if (cameraRig != null)
-                        cameraRig.baseFov = FovValue;
+                        cameraRig.baseFov = fov;
                 }
+                _fovApplied = FovOverride;
             }
 
             SceneDef currentScene = Stage.instance != null ? Stage.instance.sceneDef : null;
@@ -269,6 +273,9 @@ namespace PoppyMenu
                         }
                     }
 
+                    // 5b. DLC4 interactables that are not PurchaseInteractions (Wake, Trial Gong, Hex and Drain altars)
+                    if (EspFilterOther) DrawDlc4Interactables(cam, origin);
+
                     // 6. PickupPickerControllers (Scrappers, Void Potentials, Command Cubes)
                     var pickers = InstanceTracker.GetInstancesList<PickupPickerController>();
                     if (pickers != null)
@@ -431,7 +438,7 @@ namespace PoppyMenu
             else if (pi.costType == CostTypeIndex.LunarCoin)
                 overrideColor = new Color(0.4f, 0.6f, 0.9f); // Blueish for Lunar interactions
 
-            bool isCloaked = (pi.gameObject.name.IndexOf("Stealthed", System.StringComparison.OrdinalIgnoreCase) >= 0 || pi.gameObject.name.IndexOf("Cloaked", System.StringComparison.OrdinalIgnoreCase) >= 0) || pi.displayNameToken == "CHEST1STEALTHED_NAME";
+            bool isCloaked = (pi.gameObject.name.IndexOf("Stealthed", System.StringComparison.OrdinalIgnoreCase) >= 0 || pi.gameObject.name.IndexOf("Cloaked", System.StringComparison.OrdinalIgnoreCase) >= 0) || pi.displayNameToken == "CHEST1_STEALTHED_NAME";
 
             string costStr = "";
             if (pi.cost > 0 && pi.costType != CostTypeIndex.None)
@@ -443,7 +450,7 @@ namespace PoppyMenu
                 else if (pi.costType == CostTypeIndex.PercentHealth)
                     costStr = $" ({pi.cost}% HP)";
                 else
-                    costStr = $" (${pi.cost})";
+                    costStr = $" ({GameCostString(pi.costType, pi.cost)})";
             }
 
             string baseName = ShowNames ? (isCloaked ? "Cloaked Chest" : pi.GetDisplayName()) : "";
@@ -486,6 +493,78 @@ namespace PoppyMenu
             string distStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
 
             return BuildMultiLine(baseName, contentStr, distStr);
+        }
+
+        private static readonly Color Dlc4Color = new Color(0.95f, 0.75f, 0.3f);
+
+        private void DrawDlc4Interactables(Camera cam, Vector3 origin)
+        {
+            List<IInteractable> list = InterfaceInstanceTracker<IInteractable>.GetInstancesList();
+            if (list == null) return;
+            Interactor me = PlayerContext.Body != null ? PlayerContext.Body.GetComponent<Interactor>() : null;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                MonoBehaviour mb = list[i] as MonoBehaviour;
+                if (mb == null || mb.transform == null) continue;
+
+                string fallback = Dlc4FallbackName(mb);
+                if (fallback == null) continue; // not a DLC4 type; other passes cover the rest
+
+                if (me != null)
+                {
+                    Interactability state;
+                    try { state = list[i].GetInteractability(me); } catch { continue; }
+                    if (state == Interactability.Disabled) continue;
+                }
+                if (Culled(origin, mb.transform.position, out float dist)) continue;
+
+                string name = "";
+                if (ShowNames)
+                {
+                    IDisplayNameProvider dn = mb.GetComponent<IDisplayNameProvider>();
+                    try { name = dn != null ? dn.GetDisplayName() : (me != null ? list[i].GetContextString(me) : null); } catch { name = null; }
+                    if (string.IsNullOrEmpty(name)) name = fallback;
+                    else name = _richTag.Replace(name, "");
+                }
+                string dStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
+                DrawMarker(cam, mb.transform.position, BuildMultiLine(name, "", dStr), Dlc4Color);
+            }
+        }
+
+        private static string Dlc4FallbackName(MonoBehaviour mb)
+        {
+            switch (mb)
+            {
+                case WakeController _: return "Wake";
+                case WakeDonationController _: return "Wake Offering";
+                case WakeStop _: return "Wake Stop";
+                case TrialGongInteraction _: return "Trial Gong";
+                case GrantHexesController _: return "Hex Altar";
+                case DrainItemsAndDropMultiChoicePotentialController _: return "Drain Altar";
+                default: return null;
+            }
+        }
+
+        private static readonly System.Text.StringBuilder _costSb = new System.Text.StringBuilder();
+        private static readonly System.Text.RegularExpressions.Regex _richTag = new System.Text.RegularExpressions.Regex("<[^>]*>");
+
+        // Item, soul, wake flower, hex and other non-money costs use the game's own localized format.
+        private static string GameCostString(CostTypeIndex type, int cost)
+        {
+            try
+            {
+                CostTypeDef def = CostTypeCatalog.GetCostTypeDef(type);
+                if (def != null)
+                {
+                    _costSb.Clear();
+                    def.BuildCostString(cost, _costSb);
+                    string s = _richTag.Replace(_costSb.ToString(), "").Trim();
+                    if (s.Length > 0) return s;
+                }
+            }
+            catch { }
+            return $"{cost} {type}";
         }
 
         private static string GetPickupMultiLineLabel(GenericPickupController gpc, float dist, out Color overrideColor)
@@ -575,6 +654,10 @@ namespace PoppyMenu
                 case ItemTier.VoidTier2:
                 case ItemTier.VoidTier3:
                 case ItemTier.VoidBoss: return "Void";
+                case ItemTier.FoodTier: return "Food";
+                case ItemTier.Cursed: return "Cursed";
+                case ItemTier.Page: return "Page";
+                case ItemTier.Hex: return "Hex";
                 default: return "Equipment";
             }
         }

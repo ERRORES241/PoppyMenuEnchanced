@@ -31,7 +31,8 @@ namespace PoppyMenu
         internal static void Init()
         {
             _h = new Harmony("poppy.aimbot");
-            var bulletFire = AccessTools.Method(typeof(BulletAttack), nameof(BulletAttack.Fire), new System.Type[0]);
+            // Fire() is a thin wrapper over Fire(FireArgs); some game code calls the latter directly.
+            var bulletFire = AccessTools.Method(typeof(BulletAttack), nameof(BulletAttack.Fire), new[] { typeof(BulletAttack.FireArgs) });
             if (bulletFire != null) _h.Patch(bulletFire, prefix: new HarmonyMethod(typeof(Aim), nameof(BulletFirePrefix)));
             var fireProj = AccessTools.Method(typeof(ProjectileManager), nameof(ProjectileManager.FireProjectile), new[] { typeof(FireProjectileInfo) });
             if (fireProj != null) _h.Patch(fireProj, prefix: new HarmonyMethod(typeof(Aim), nameof(FireProjectilePrefix)));
@@ -48,12 +49,23 @@ namespace PoppyMenu
 
         private static bool ApplySpreadPrefix(Vector3 aimDirection, ref Vector3 __result)
         {
-            if (NoSpread)
+            // ApplySpread is static and shared with enemy AI; only strip spread for shots along the local player's aim.
+            if (NoSpread && IsLocalAim(aimDirection))
             {
                 __result = aimDirection.normalized;
                 return false;
             }
             return true;
+        }
+
+        private static bool IsLocalAim(Vector3 aimDirection)
+        {
+            InputBankTest ib = PlayerContext.InputBank;
+            if (ib == null || aimDirection.sqrMagnitude < 0.0001f) return false;
+            Vector3 mine = Active && Target != null && PlayerContext.Body != null
+                ? Target.transform.position - ib.aimOrigin
+                : ib.aimDirection;
+            return Vector3.Angle(aimDirection, mine) < 2f || Vector3.Angle(aimDirection, ib.aimDirection) < 2f;
         }
 
         private static bool AddRecoilPrefix()

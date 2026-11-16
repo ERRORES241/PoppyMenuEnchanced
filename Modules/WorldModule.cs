@@ -49,8 +49,15 @@ namespace PoppyMenu
 
         private static bool AddShrineStack_Prefix(ShrineChanceBehavior __instance, Interactor activator)
         {
-            if (!GuaranteedShrineChance || __instance == null || !UnityEngine.Networking.NetworkServer.active)
+            if (__instance == null || !UnityEngine.Networking.NetworkServer.active)
                 return true;
+
+            if (!GuaranteedShrineChance)
+            {
+                // Infinite uses without the guarantee: let the game roll, but never reach maxPurchaseCount.
+                if (InfiniteShrineChance) _successfulPurchaseCountRef(__instance) = 0;
+                return true;
+            }
 
             CharacterBody body = activator != null ? activator.GetComponent<CharacterBody>() : null;
             if (body == null || body.inventory == null)
@@ -176,6 +183,7 @@ namespace PoppyMenu
             bool want = FreezeMatch || Mathf.Abs(TimeScale - 1f) > 0.001f;
             if (want)
             {
+                if (PauseManager.isPaused) return; // do not override the pause menu
                 Time.timeScale = FreezeMatch ? 0f : TimeScale;
                 _controllingTime = true;
             }

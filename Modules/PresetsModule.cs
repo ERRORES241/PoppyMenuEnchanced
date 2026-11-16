@@ -22,8 +22,12 @@ namespace PoppyMenu
                 Directory.CreateDirectory(ConfigsFolder);
         }
 
+        // Cached: DrawMenu runs several times per frame and must not hit the disk each time.
+        private static List<ConfigProfile> _profileCache;
+
         internal static List<ConfigProfile> GetSavedProfiles()
         {
+            if (_profileCache != null) return _profileCache;
             EnsureFolderExists();
             List<ConfigProfile> list = new List<ConfigProfile>();
             string[] files = Directory.GetFiles(ConfigsFolder, "*.json");
@@ -42,6 +46,7 @@ namespace PoppyMenu
                 }
                 catch { }
             }
+            _profileCache = list;
             return list;
         }
 
@@ -52,8 +57,9 @@ namespace PoppyMenu
 
             string safeName = SanitizeFileName(profile.Name.Trim());
             string path = Path.Combine(ConfigsFolder, safeName + ".json");
-            string json = JsonConvert.SerializeObject(profile, Formatting.Indented);
-            File.WriteAllText(path, json);
+            try { File.WriteAllText(path, JsonConvert.SerializeObject(profile, Formatting.Indented)); }
+            catch (System.Exception e) { Log.Error("Save config failed: " + e); Notify.Push("Save failed"); }
+            _profileCache = null;
         }
 
         internal static void DeleteProfile(string name)
@@ -62,10 +68,9 @@ namespace PoppyMenu
             if (string.IsNullOrWhiteSpace(name)) return;
             string safeName = SanitizeFileName(name.Trim());
             string path = Path.Combine(ConfigsFolder, safeName + ".json");
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
+            try { if (File.Exists(path)) File.Delete(path); }
+            catch (System.Exception e) { Log.Error("Delete config failed: " + e); }
+            _profileCache = null;
         }
 
         internal static void RenameProfile(ConfigProfile profile, string newName)

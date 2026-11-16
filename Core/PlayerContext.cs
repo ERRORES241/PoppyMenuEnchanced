@@ -61,14 +61,22 @@ namespace PoppyMenu
                             }
                             return;
                         }
+                        // Dead or between bodies: keep the master so Respawn and inventory ops still work.
+                        ClearBody();
+                        return;
                     }
                 }
             }
 
             User = null;
             Master = null;
-            Body = null;
             Inventory = null;
+            ClearBody();
+        }
+
+        private static void ClearBody()
+        {
+            Body = null;
             Health = null;
             Skills = null;
             Motor = null;

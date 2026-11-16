@@ -29,6 +29,7 @@ namespace PoppyMenu
                     () => NetUtil.Do(PoppyOp.GiveEquipment, (int)e.Index)));
             }
             Widgets.PickerButton("Give Equipment...", "Equipment", equipRows);
+            Widgets.PickerButton("Give Key Item...", "Key Items", KeyItemRows());
             Widgets.Button($"Give All Items (x{GiveCount})", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: GiveCount));
             Widgets.SectionEnd();
 
@@ -49,6 +50,26 @@ namespace PoppyMenu
             Widgets.SectionEnd();
         }
 
+        private static readonly UnityEngine.Color KeyItemColor = new UnityEngine.Color(0.85f, 0.65f, 1f);
+
+        // DLC4 key item slot (e.g. Cursed Book). One slot per player; "None" clears it.
+        private static List<ListPicker.Row> KeyItemRows()
+        {
+            var rows = new List<ListPicker.Row>
+            {
+                new ListPicker.Row("None (remove)", UnityEngine.Color.gray, () => NetUtil.Do(PoppyOp.SetKeyItem, i1: (int)KeyItemIndex.None))
+            };
+            foreach (KeyItemDef def in KeyItemCatalog.allKeyItemDefs)
+            {
+                if (def == null) continue;
+                KeyItemIndex idx = def.keyItemIndex;
+                string name = Language.GetString(def.nameToken);
+                if (string.IsNullOrEmpty(name) || name == def.nameToken) name = def.name;
+                rows.Add(new ListPicker.Row(name, KeyItemColor, () => NetUtil.Do(PoppyOp.SetKeyItem, i1: (int)idx)));
+            }
+            return rows;
+        }
+
         internal static void Init()
         {
             On.RoR2.PurchaseInteraction.OnInteractionBegin += PurchaseInteraction_OnInteractionBegin;
@@ -56,7 +77,7 @@ namespace PoppyMenu
 
         private static void PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
         {
-            var body = activator.GetComponent<CharacterBody>();
+            var body = activator ? activator.GetComponent<CharacterBody>() : null;
             int prevConsumed = 0;
             if (body && body.inventory)
             {

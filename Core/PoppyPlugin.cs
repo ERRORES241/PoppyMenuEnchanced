@@ -8,7 +8,7 @@ namespace PoppyMenu
     public class PoppyPlugin : BaseUnityPlugin
     {
         internal const string Guid = "com.poppy.poppymenuenchanced";
-        internal const string Version = "2.6.0";
+        internal const string Version = "2.7.0";
 
         internal static PoppyPlugin Instance { get; private set; }
 

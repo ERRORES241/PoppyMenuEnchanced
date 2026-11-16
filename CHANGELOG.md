@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.7.0
+- Updated for the October 2026 game update and DLC4 (GameLibs 1.5.0-r.1, MMHOOK 2026.10.8).
+- Fixed input capture for the new buffered input system; the removed equipment cycle inputs no longer break every physics tick.
+- Added DLC4 support: key item giver, ESP markers for Wake, Trial Gong, Hex and Drain altars, labels for the Cursed, Page and Hex item tiers and the new cost types.
+- Kill All Enemies and No Enemies now cover the Lunar and End of the Cycle teams.
+- Inventory Undo, Stack and Reroll use permanent item counts, restore the key item, and only undo for the player that was changed.
+- Fixed Respawn doing nothing while dead.
+- Fixed a macro that calls itself crashing the game.
+- Fixed Time Scale overriding the pause menu.
+- Infinite Shrine of Chance Uses now works without the 100% win rate toggle.
+- No Spread no longer removes spread from enemy shots when hosting; aimbot now also covers bullets fired through BulletAttack.Fire(FireArgs).
+- BunnyHop only applies to the local player.
+- Railgunner Fun features only apply to Railgunner, and Ult Spam no longer switches the other two toggles on permanently.
+- FOV Changer restores the default FOV when turned off.
+- God Mode no longer overrides the game's god state every frame.
+- Saved configs are cached instead of being read from disk every frame.
+
 ## 2.6.0
 - Added Teleport to Ping (auto-teleport on ping, teleport to active ping, and teleport to cursor).
 - Fixed aimbot targeting non-hostile environmental objects (such as Sky Meadow floating rocks and props).

@@ -29,11 +29,18 @@ namespace PoppyMenu
             return null;
         }
 
+        private const int MaxDepth = 8;
+        private static int _depth;
+
         internal static void Run(string name)
         {
             Macro m = Get(name);
-            if (m == null) return;
-            foreach (CustomStep s in m.Steps) StepRunner.Run(s);
+            if (m == null || m.Steps == null) return;
+            // A macro that calls itself (directly or through another macro) would overflow the stack and crash the game.
+            if (_depth >= MaxDepth) { Notify.Push("Macro loop stopped: " + name); return; }
+            _depth++;
+            try { foreach (CustomStep s in m.Steps.ToArray()) StepRunner.Run(s); }
+            finally { _depth--; }
         }
     }
 }

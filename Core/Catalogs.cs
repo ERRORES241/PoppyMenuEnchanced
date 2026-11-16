@@ -160,6 +160,10 @@ namespace PoppyMenu
                 case ItemTier.VoidTier2: return 6;
                 case ItemTier.VoidTier3: return 7;
                 case ItemTier.VoidBoss: return 8;
+                case ItemTier.FoodTier: return 9;
+                case ItemTier.Page: return 10;
+                case ItemTier.Cursed: return 11;
+                case ItemTier.Hex: return 12;
                 default: return 99;
             }
         }

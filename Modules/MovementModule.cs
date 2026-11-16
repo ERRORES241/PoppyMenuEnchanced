@@ -209,7 +209,7 @@ namespace PoppyMenu
         {
             orig(self);
 
-            if (Bhop && self.body != null && !InputCapture.Active)
+            if (Bhop && self.hasEffectiveAuthority && self.body != null && !InputCapture.Active)
             {
                 CharacterMotor motor = self.body.characterMotor;
                 InputBankTest input = self.bodyInputs;

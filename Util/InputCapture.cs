@@ -19,7 +19,7 @@ namespace PoppyMenu
             _h = new Harmony("poppy.input");
             var update = AccessTools.Method(typeof(PlayerCharacterMasterController), "Update");
             if (update != null)
-                _h.Patch(update, prefix: new HarmonyMethod(typeof(InputCapture), nameof(PcmcUpdatePrefix)));
+                _h.Patch(update, postfix: new HarmonyMethod(typeof(InputCapture), nameof(PcmcUpdatePostfix)));
 
             var fixedUpdate = AccessTools.Method(typeof(PlayerCharacterMasterController), "FixedUpdate");
             if (fixedUpdate != null)
@@ -76,15 +76,18 @@ namespace PoppyMenu
             _h = null;
         }
 
-        private static bool PcmcUpdatePrefix(PlayerCharacterMasterController __instance)
+        // Update must run: it refreshes the body and fills the button buffers.
+        // While the menu is open, drop movement and suppress buttons until released
+        // so clicks inside the menu never reach skills after it closes.
+        private static void PcmcUpdatePostfix(PlayerCharacterMasterController __instance)
         {
-            if (!Active) return true;
+            if (!Active) return;
             InputBankTest ib = __instance.bodyInputs;
-            if (ib == null || ib != PlayerContext.InputBank) return true;
+            if (ib == null || ib != PlayerContext.InputBank) return;
 
             ib.moveVector = Vector3.zero;
             ib.SetRawMoveStates(Vector2.zero);
-            return false;
+            __instance.SuppressAllButtonsUntilReleased();
         }
 
         private static bool PcmcFixedUpdatePrefix(PlayerCharacterMasterController __instance)
@@ -99,11 +102,13 @@ namespace PoppyMenu
             ib.skill4.PushState(false);
             ib.jump.PushState(false);
             ib.sprint.PushState(false);
+            ib.rawSprintInput.PushState(false);
             ib.interact.PushState(false);
             ib.activateEquipment.PushState(false);
+            ib.activateKeyItem.PushState(false);
             ib.ping.PushState(false);
-            ib.nextEquipment.PushState(false);
-            ib.prevEquipment.PushState(false);
+            ib.keyItemNextElement.PushState(false);
+            ib.keyItemPrevElement.PushState(false);
             return false;
         }
     }

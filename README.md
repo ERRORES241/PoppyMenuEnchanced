@@ -1,4 +1,4 @@
-# PoppyMenuEnchanced (v2.6.0)
+# PoppyMenuEnchanced (v2.7.0)
 
 An enhanced in-game cheat and debug menu for Risk of Rain 2. Press Insert to open it.
 
@@ -19,6 +19,7 @@ Organized into clean top-level tabs and focused sub-pages.
 - **Category Filters:** Toggle ESP rendering independently for Chests/Multishops, Shrines, Drones/Turrets, Printers, Scrappers, Barrels, and Other interactables.
 - **Shrine & Pricing Accuracy:** Correct price formatting for shrines (Mountain Shrines, Shrine of Chance, Cleansing Pools) that do not require money, omitting misleading costs.
 - **Void Potentials & Cradles:** Distinct purple markers for Void Potentials (OptionPickup) and Void Cradles.
+- **DLC4 Objects:** Markers for the Wake, Wake offerings and stops, Trial Gong, Hex and Drain altars. Costs in souls, wake flowers, hexes and items use the game's own wording.
 - **Dynamic Localization:** ESP labels use native game language tokens (Russian, English, etc.).
 - **Active Effects HUD:** Draggable on-screen HUD displaying currently active toggles (God Mode, Aimbot, Sprint, etc.) with automatic pixel-accurate height scaling.
 
@@ -36,7 +37,7 @@ Main controls for the local character across three sub-pages:
 - **Survival:** God mode, Semi-Godmode (Buddha), Skills No CD, full heal, hurt, respawn, and instant Kill All Enemies.
 - **Economy:** Give Money, XP, and Lunar Coins with configurable numerical stepper inputs.
 - **Stats:** Live readout and multipliers for damage, attack speed, movement speed, armor, crit chance, and max health.
-- **Items:** Searchable item and equipment giver with tier color coding, Stack Inventory (Shrine of Order), Reroll Items, Clear Inventory, Undo Last Change, Equipment No Cooldown toggle, and configurable **Sale Star Drop Count Multiplier** (customize item count spawned on Sale Star triggers).
+- **Items:** Searchable item and equipment giver with tier color coding, Stack Inventory (Shrine of Order), Reroll Items, Clear Inventory, Undo Last Change, Equipment No Cooldown toggle, DLC4 key item giver (Cursed Book), and configurable **Sale Star Drop Count Multiplier** (customize item count spawned on Sale Star triggers).
 
 ### World
 Stage, run, and server management across sub-pages:

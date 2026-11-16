@@ -18,13 +18,26 @@ namespace PoppyMenu
             CharacterBody body = PlayerContext.Body;
             if (body == null) return;
 
-            if (RailgunnerUltSpam)
-            {
-                RailgunnerInstaCharge = true;
-                RailgunnerNoUltCooldown = true;
-            }
+            TickRailgunner(body);
+        }
 
-            if (RailgunnerInstaCharge || RailgunnerNoUltCooldown || RailgunnerUltSpam)
+        private static BodyIndex _railgunnerIndex = BodyIndex.None;
+
+        private static bool IsBody(CharacterBody body, ref BodyIndex cached, string name)
+        {
+            if (cached == BodyIndex.None) cached = BodyCatalog.FindBodyIndex(name);
+            return cached != BodyIndex.None && body.bodyIndex == cached;
+        }
+
+        private static void TickRailgunner(CharacterBody body)
+        {
+            if (!(RailgunnerInstaCharge || RailgunnerNoUltCooldown || RailgunnerUltSpam)) return;
+            if (!IsBody(body, ref _railgunnerIndex, "RailgunnerBody")) return;
+
+            // Ult Spam implies the other two without overwriting the user's toggles.
+            bool instaCharge = RailgunnerInstaCharge || RailgunnerUltSpam;
+            bool noUltCooldown = RailgunnerNoUltCooldown || RailgunnerUltSpam;
+
             {
                 // 1. Reset Special skill cooldown ONLY (Do NOT touch primary, secondary, utility)
                 if (body.skillLocator != null && body.skillLocator.special != null)
@@ -41,7 +54,7 @@ namespace PoppyMenu
                         if (machine == null || machine.state == null) continue;
 
                         // Instant Charge logic: set fixedAge to 999f on both weapon and backpack so the UI bar renders 100% full instantly and transitions naturally
-                        if (RailgunnerInstaCharge)
+                        if (instaCharge)
                         {
                             if (machine.state is EntityStates.Railgunner.Weapon.BaseChargeSnipe chargeWeapon)
                             {
@@ -54,7 +67,7 @@ namespace PoppyMenu
                         }
 
                         // Remove Overheat/Expired lockout after Special fires
-                        if (RailgunnerNoUltCooldown || RailgunnerUltSpam)
+                        if (noUltCooldown)
                         {
                             string stateName = machine.state.GetType().Name;
                             if (stateName.Contains("Expired") || stateName.Contains("Offline") || stateName.Contains("Reboot") || stateName.Contains("Overheat"))

@@ -19,7 +19,8 @@ namespace PoppyMenu
         SetStagesCleared, SetRunTime, SetTeamLevel, SetArtifact,
         TrueKillTarget, TeleportBody, SetTeam, HurtBody,
         HealAmount, GiveTimedBuff, InflictDot,
-        ChangeScene, UndoInventory
+        ChangeScene, UndoInventory,
+        SetKeyItem // keep new ops at the end: the byte value goes over the network
     }
 
     internal static class NetUtil
@@ -94,6 +95,7 @@ namespace PoppyMenu
                 case PoppyOp.InflictDot: return "DoT applied";
                 case PoppyOp.ChangeScene: return "Changing scene";
                 case PoppyOp.UndoInventory: return "Inventory restored";
+                case PoppyOp.SetKeyItem: return "Key item set";
                 default: return op.ToString();
             }
         }
@@ -241,6 +243,9 @@ namespace PoppyMenu
                     case PoppyOp.UndoInventory:
                         RestoreSnapshot(inv);
                         break;
+                    case PoppyOp.SetKeyItem:
+                        if (inv != null) { Snapshot(inv); inv.SetKeyItem((KeyItemIndex)i1); }
+                        break;
                     case PoppyOp.GiveMoney:
                         master?.GiveMoney((uint)Mathf.Max(0, i1));
                         break;
@@ -371,24 +376,29 @@ namespace PoppyMenu
         private static readonly List<ItemIndex> _undoItems = new List<ItemIndex>();
         private static readonly List<int> _undoCounts = new List<int>();
         private static EquipmentIndex _undoEquip = EquipmentIndex.None;
+        private static KeyItemIndex _undoKeyItem = KeyItemIndex.None;
         private static bool _hasUndo;
+        private static Inventory _undoOwner;
 
         private static void Snapshot(Inventory inv)
         {
             _undoItems.Clear();
             _undoCounts.Clear();
+            _undoOwner = inv;
             if (inv == null) { _hasUndo = false; return; }
-            foreach (ItemIndex idx in inv.itemAcquisitionOrder) { _undoItems.Add(idx); _undoCounts.Add(inv.GetItemCount(idx)); }
+            foreach (ItemIndex idx in inv.itemAcquisitionOrder) { _undoItems.Add(idx); _undoCounts.Add(inv.GetItemCountPermanent(idx)); }
             _undoEquip = inv.GetEquipmentIndex();
+            _undoKeyItem = inv.GetKeyItemIndex();
             _hasUndo = true;
         }
 
         private static void RestoreSnapshot(Inventory inv)
         {
-            if (inv == null || !_hasUndo) { Notify.Push("Nothing to undo"); return; }
+            if (inv == null || !_hasUndo || inv != _undoOwner) { Notify.Push("Nothing to undo"); return; }
             inv.CleanInventory();
             for (int k = 0; k < _undoItems.Count; k++) inv.GiveItem(_undoItems[k], _undoCounts[k]);
             inv.SetEquipmentIndex(_undoEquip);
+            if (inv.GetKeyItemIndex() != _undoKeyItem) inv.SetKeyItem(_undoKeyItem);
             _hasUndo = false;
         }
 
@@ -425,11 +435,11 @@ namespace PoppyMenu
                 int bestCount = -1;
                 foreach (ItemIndex idx in items)
                 {
-                    int c = inv.GetItemCount(idx);
+                    int c = inv.GetItemCountPermanent(idx);
                     total += c;
                     if (c > bestCount) { bestCount = c; best = idx; }
                 }
-                foreach (ItemIndex idx in items) inv.RemoveItem(idx, inv.GetItemCount(idx));
+                foreach (ItemIndex idx in items) inv.RemoveItem(idx, inv.GetItemCountPermanent(idx));
                 inv.GiveItem(best, total);
             }
         }
@@ -447,7 +457,8 @@ namespace PoppyMenu
             {
                 ItemDef def = ItemCatalog.GetItemDef(idx);
                 if (def == null) continue;
-                int count = inv.GetItemCount(idx);
+                int count = inv.GetItemCountPermanent(idx);
+                if (count <= 0) continue;
                 if (!tierLists.TryGetValue(def.tier, out var pool) || pool.Count == 0) continue;
                 ItemIndex roll = pool[Random.Range(0, pool.Count)];
                 inv.RemoveItem(idx, count);
@@ -502,10 +513,13 @@ namespace PoppyMenu
                 if (m == null) continue;
                 CharacterBody b = m.GetBody();
                 if (b == null || b.teamComponent == null) continue;
-                if (b.teamComponent.teamIndex == TeamIndex.Monster || b.teamComponent.teamIndex == TeamIndex.Void)
+                if (IsHostileTeam(b.teamComponent.teamIndex))
                     m.TrueKill();
             }
         }
+
+        internal static bool IsHostileTeam(TeamIndex t) =>
+            t == TeamIndex.Monster || t == TeamIndex.Lunar || t == TeamIndex.Void || t == TeamIndex.EndOfTheCycle;
 
         private static void Spawn(string cardName, Vector3 position, int count, int teamRaw)
         {

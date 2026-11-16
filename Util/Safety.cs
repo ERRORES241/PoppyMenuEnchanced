@@ -46,7 +46,7 @@ namespace PoppyMenu
             if (!NoEnemies || !NetworkServer.active) return;
             if (body == null || body.teamComponent == null || body.master == null) return;
             TeamIndex team = body.teamComponent.teamIndex;
-            if (team == TeamIndex.Monster || team == TeamIndex.Void) body.master.TrueKill();
+            if (NetUtil.IsHostileTeam(team)) body.master.TrueKill();
         }
 
         private static void BuddhaPrefix(HealthComponent __instance, DamageInfo damageInfo)

@@ -17,12 +17,21 @@ namespace PoppyMenu
 
         internal static void ToggleGod() => GodMode = !GodMode;
 
+        private static bool _godApplied;
+        private static CharacterBody _godBody;
+
         internal override void Tick()
         {
             if (!PlayerContext.InGame || !PlayerContext.HasBody) return;
 
-            if (PlayerContext.Health != null) PlayerContext.Health.godMode = GodMode;
-            if (PlayerContext.Master != null) PlayerContext.Master.godMode = GodMode;
+            // Write only on change (or new body) so we never fight the game's own god command or other mods.
+            if (GodMode != _godApplied || PlayerContext.Body != _godBody)
+            {
+                if (PlayerContext.Health != null) PlayerContext.Health.godMode = GodMode;
+                if (PlayerContext.Master != null) PlayerContext.Master.godMode = GodMode;
+                _godApplied = GodMode;
+                _godBody = PlayerContext.Body;
+            }
 
             if (InfiniteSkills && PlayerContext.Skills != null)
                 PlayerContext.Skills.ApplyAmmoPack();
@@ -84,7 +93,7 @@ namespace PoppyMenu
             var rows = new List<ListPicker.Row>();
             foreach (DotController.DotIndex dot in System.Enum.GetValues(typeof(DotController.DotIndex)))
             {
-                if ((int)dot < 0) continue;
+                if ((int)dot < 0 || dot >= DotController.DotIndex.Count) continue;
                 DotController.DotIndex d = dot;
                 rows.Add(new ListPicker.Row(d.ToString(), Color.red, () =>
                     NetUtil.Do(PoppyOp.InflictDot, i1: (int)d, f1: _buffDuration > 0.05f ? _buffDuration : 5f)));
