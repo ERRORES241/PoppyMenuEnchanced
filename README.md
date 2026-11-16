@@ -1,4 +1,4 @@
-# PoppyMenuEnchanced (v2.6)
+# PoppyMenuEnchanced (v2.6.0)
 
 An enhanced in-game cheat and debug menu for Risk of Rain 2. Press Insert to open it.
 
@@ -66,7 +66,7 @@ Dedicated survivor-specific utilities and mechanics:
 Host permissions apply by default. Server-side changes (items, spawns, match freeze) require host privileges or solo play. Visual and client-side movement features operate locally.
 
 ## Installation
-Drop `PoppyMenu.dll` into `Risk of Rain 2/BepInEx/plugins` or install via r2modman / Thunderstore Mod Manager.
+Drop `PoppyMenuEnchanced.dll` into `Risk of Rain 2/BepInEx/plugins` or install via r2modman / Thunderstore Mod Manager.
 
 ## Credits
 Poppy Menu is maintained by Poppy.
