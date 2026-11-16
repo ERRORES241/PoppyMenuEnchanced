@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.6
+## 2.6.0
 - Added Teleport to Ping (auto-teleport on ping, teleport to active ping, and teleport to cursor).
 - Fixed aimbot targeting non-hostile environmental objects (such as Sky Meadow floating rocks and props).
 - Added 100% Shrine of Chance win rate and infinite shrine uses.
