@@ -12,7 +12,7 @@ namespace PoppyMenu
         GiveItem, RemoveItem, GiveEquipment, GiveAllItems, ClearInventory, StackInventory, RollItems,
         GiveMoney, GiveXp, GiveLunar,
         GiveBuff, RemoveBuff, RemoveAllBuffs,
-        Respawn, ChangeBody, HealFull,
+        Respawn, ChangeBody /* retired, kept for the numbering */, HealFull,
         KillAllEnemies, Spawn,
         ChargeTeleporter, SkipStage, AddMountainShrine,
         SpawnShopPortal, SpawnGoldshoresPortal, SpawnMSPortal,
@@ -20,7 +20,8 @@ namespace PoppyMenu
         TrueKillTarget, TeleportBody, SetTeam, HurtBody,
         HealAmount, GiveTimedBuff, InflictDot,
         ChangeScene, UndoInventory,
-        SetKeyItem // keep new ops at the end: the byte value goes over the network
+        SetKeyItem, // keep new ops at the end: the byte value goes over the network
+        SpawnPortals
     }
 
     internal static class NetUtil
@@ -73,7 +74,6 @@ namespace PoppyMenu
                 case PoppyOp.RemoveAllBuffs: return "Buffs removed";
                 case PoppyOp.Respawn: return "Respawned";
                 case PoppyOp.HealFull: return "Healed to full";
-                case PoppyOp.ChangeBody: return "Became " + (s1 ?? "body");
                 case PoppyOp.KillAllEnemies: return "Killed all enemies";
                 case PoppyOp.Spawn: return "Spawned " + (s1 ?? "object");
                 case PoppyOp.ChargeTeleporter: return "Charge zone filled";
@@ -96,6 +96,7 @@ namespace PoppyMenu
                 case PoppyOp.ChangeScene: return "Changing scene";
                 case PoppyOp.UndoInventory: return "Inventory restored";
                 case PoppyOp.SetKeyItem: return "Key item set";
+                case PoppyOp.SpawnPortals: return "Portals spawned";
                 default: return op.ToString();
             }
         }
@@ -251,6 +252,9 @@ namespace PoppyMenu
                     case PoppyOp.UndoInventory:
                         RestoreSnapshot(inv);
                         break;
+                    case PoppyOp.SpawnPortals:
+                        SpawnPortals(new Vector3(f1, f2, f3));
+                        break;
                     case PoppyOp.SetKeyItem:
                         if (inv != null) { Snapshot(inv); inv.SetKeyItem((KeyItemIndex)i1); }
                         break;
@@ -278,9 +282,6 @@ namespace PoppyMenu
                     case PoppyOp.HealFull:
                         if (body != null && body.healthComponent != null)
                             body.healthComponent.Heal(body.healthComponent.fullCombinedHealth, default, true);
-                        break;
-                    case PoppyOp.ChangeBody:
-                        ChangeBody(master, s1, new Vector3(f1, f2, f3));
                         break;
                     case PoppyOp.KillAllEnemies:
                         KillAllEnemies();
@@ -417,7 +418,8 @@ namespace PoppyMenu
             if (defs == null) return;
             foreach (BuffDef def in defs)
             {
-                if (def == null) continue;
+                // Hidden buffs are internal skill and item state; removing them breaks mechanics.
+                if (def == null || def.isHidden) continue;
                 int count = body.GetBuffCount(def.buffIndex);
                 for (int i = 0; i < count; i++) body.RemoveBuff(def.buffIndex);
             }
@@ -476,45 +478,6 @@ namespace PoppyMenu
             }
         }
 
-        private static CharacterMaster _goGuardMaster;
-        private static float _goGuardUntil;
-
-        internal static void TickGuards()
-        {
-            if (_goGuardMaster != null && Time.time >= _goGuardUntil)
-            {
-                _goGuardMaster.preventGameOver = false;
-                _goGuardMaster = null;
-            }
-        }
-
-        private static void ChangeBody(CharacterMaster master, string bodyName, Vector3 fallbackPos)
-        {
-            if (master == null || string.IsNullOrEmpty(bodyName)) return;
-            GameObject prefab = BodyCatalog.FindBodyPrefab(bodyName);
-            if (prefab == null) { Log.Warning($"ChangeBody: no body '{bodyName}'."); return; }
-
-            CharacterBody current = master.GetBody();
-            Vector3 pos = current != null ? current.footPosition : fallbackPos;
-            Quaternion rot = current != null ? current.transform.rotation : Quaternion.identity;
-            GameObject original = master.bodyPrefab;
-
-            master.preventGameOver = true;
-            _goGuardMaster = master;
-            _goGuardUntil = Time.time + 5f;
-
-            master.bodyPrefab = prefab;
-            CharacterBody nb = master.Respawn(pos, rot, false);
-            master.lostBodyToDeath = false;
-
-            if (nb == null && original != null)
-            {
-                master.bodyPrefab = original;
-                master.Respawn(pos, rot, false);
-                Notify.Push("Couldn't spawn that body, reverted");
-            }
-        }
-
         private static void KillAllEnemies()
         {
             var list = new System.Collections.Generic.List<CharacterMaster>(CharacterMaster.readOnlyInstancesList);
@@ -562,7 +525,14 @@ namespace PoppyMenu
                 }
             }
 
-            // 3. Resources.FindObjectsOfTypeAll
+            // 3. Portal cards are not loaded on most stages: load them by address.
+            if (card == null && PortalCards.TryGetValue(cardName, out string address))
+            {
+                card = LoadCard(address);
+                interactable = card != null;
+            }
+
+            // 4. Resources.FindObjectsOfTypeAll
             if (card == null)
             {
                 foreach (SpawnCard sc in Resources.FindObjectsOfTypeAll<SpawnCard>())
@@ -576,7 +546,7 @@ namespace PoppyMenu
                 }
             }
 
-            // 4. ShrineRebirthController fields fallback
+            // 5. ShrineRebirthController fields fallback
             if (card == null)
             {
                 var rebirthController = Object.FindObjectOfType<ShrineRebirthController>();
@@ -610,6 +580,50 @@ namespace PoppyMenu
                     request.teamIndexOverride = team;
                 DirectorCore.instance.TrySpawnObject(request);
             }
+        }
+
+        // Destination portals. Exit, outro and backout portals and the Danger trial variant are left out:
+        // they only make sense inside their own events. Keys from the game's Addressables catalog.
+        private static readonly Dictionary<string, string> PortalCards = new Dictionary<string, string>
+        {
+            { "iscShopPortal", "RoR2/Base/Interactables/Portals/PortalShop/iscShopPortal.asset" },
+            { "iscGoldshoresPortal", "RoR2/Base/Interactables/Portals/PortalGoldshores/iscGoldshoresPortal.asset" },
+            { "iscMSPortal", "RoR2/Base/Interactables/Portals/PortalMS/iscMSPortal.asset" },
+            { "iscVoidPortal", "RoR2/DLC1/Interactables/PortalVoid/iscVoidPortal.asset" },
+            { "iscDeepVoidPortal", "RoR2/DLC1/Interactables/DeepVoidPortal/iscDeepVoidPortal.asset" },
+            { "iscColossusPortal", "RoR2/DLC2/Interactables/Portals/PortalColossus/iscColossusPortal.asset" },
+            { "iscDestinationPortal", "RoR2/DLC2/Interactables/Portals/DestinationPortal/iscDestinationPortal.asset" },
+            { "iscSolusShopPortal", "RoR2/DLC3/Interactables/Portals/SolusPortal/iscSolusShopPortal.asset" },
+            { "iscEyePortal", "RoR2/DLC3/Interactables/Portals/EyePortal/iscEyePortal.asset" },
+            { "iscHardwareProgPortal", "RoR2/DLC3/Interactables/Portals/HardwareProgPortal/iscHardwareProgPortal.asset" },
+            { "iscTrialPortalEntry", "RoR2/DLC4/Interactables/TrialPortal/iscTrialPortalEntry.asset" },
+            { "iscChampRushPortal", "RoR2/DLC4/Interactables/Portals/ChampRushPortal/iscChampRushPortal.asset" },
+        };
+
+        private static SpawnCard LoadCard(string address)
+        {
+            try { return UnityEngine.AddressableAssets.Addressables.LoadAssetAsync<SpawnCard>(address).WaitForCompletion(); }
+            catch (System.Exception e) { Log.Warning("Spawn card load failed: " + address + " " + e.Message); return null; }
+        }
+
+        private static void SpawnPortals(Vector3 around)
+        {
+            if (DirectorCore.instance == null || Run.instance == null) return;
+            int spawned = 0;
+            foreach (var pair in PortalCards)
+            {
+                SpawnCard card = LoadCard(pair.Value);
+                if (card == null) continue;
+                var placement = new DirectorPlacementRule
+                {
+                    placementMode = DirectorPlacementRule.PlacementMode.Approximate,
+                    position = around,
+                    minDistance = 6f,
+                    maxDistance = 45f
+                };
+                if (DirectorCore.instance.TrySpawnObject(new DirectorSpawnRequest(card, placement, Run.instance.spawnRng)) != null) spawned++;
+            }
+            Log.Info($"SpawnPortals: {spawned}/{PortalCards.Count}");
         }
 
         private static void ChargeTeleporter()

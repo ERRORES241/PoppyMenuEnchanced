@@ -60,8 +60,6 @@ namespace PoppyMenu
                 }
             }
 
-            NetUtil.TickGuards();
-
             Rebind.Poll();
             if (Rebind.IsActive && !MenuRoot.Visible) Rebind.Cancel();
 
@@ -83,7 +81,8 @@ namespace PoppyMenu
 
         private void HandleHotkeys()
         {
-            if (Rebind.IsActive) return;
+            if (Rebind.IsActive || Rebind.AppliedFrame == Time.frameCount) return;
+            if (InputCapture.IsTypingInGame()) return;
 
             if (Input.GetKeyDown(ModConfig.ToggleMenuKey.Value))
             {
@@ -117,10 +116,25 @@ namespace PoppyMenu
             MenuRoot.Draw(_groups);
         }
 
+        private bool _menuWasVisible;
+
         private void LateUpdate()
         {
+            // Persist every toggle once the menu closes (button, hotkey or reset), not only when a preset loads.
+            if (_menuWasVisible && !MenuRoot.Visible)
+            {
+                try { ModConfig.Save(); } catch (System.Exception e) { Log.Error(e); }
+            }
+            _menuWasVisible = MenuRoot.Visible;
+
             if (MenuRoot.Visible || ListPicker.IsOpen)
                 Cursor.lockState = CursorLockMode.None;
+        }
+
+        private void OnApplicationQuit()
+        {
+            // Hotkey and macro toggles can change settings while the menu is closed.
+            try { ModConfig.Save(); } catch (System.Exception e) { Log.Error(e); }
         }
 
         private void OnDestroy()

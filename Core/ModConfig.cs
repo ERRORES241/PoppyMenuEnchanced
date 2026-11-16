@@ -43,6 +43,8 @@ namespace PoppyMenu
         internal static ConfigEntry<bool> DrawFov;
         internal static ConfigEntry<float> FovRadius;
         internal static ConfigEntry<float> MaxRange;
+        internal static ConfigEntry<int> AimSorting;
+        internal static ConfigEntry<bool> AimHighlight;
 
         // ESP Configs
         internal static ConfigEntry<bool> EspMobs;
@@ -85,6 +87,17 @@ namespace PoppyMenu
         // Items Configs
         internal static ConfigEntry<bool> SaleStarCheat;
         internal static ConfigEntry<int> SaleStarDropCount;
+        internal static ConfigEntry<int> GiveCount;
+
+        // World, teleporter, safety and fun toggles
+        internal static ConfigEntry<bool> InfiniteShrineChance;
+        internal static ConfigEntry<bool> TeleporterInstaCharge;
+        internal static ConfigEntry<bool> NoEnemies;
+        internal static ConfigEntry<bool> LockExp;
+        internal static ConfigEntry<bool> PreventProfileWriting;
+        internal static ConfigEntry<bool> RailgunnerInstaCharge;
+        internal static ConfigEntry<bool> RailgunnerNoUltCooldown;
+        internal static ConfigEntry<bool> RailgunnerUltSpam;
 
         // Stats Configs
         internal static ConfigEntry<bool> StatDmgOn;
@@ -140,8 +153,10 @@ namespace PoppyMenu
             MagicBullet = cfg.Bind("Aimbot", "MagicBullet", false, "Shots pass through terrain.");
             UseFov = cfg.Bind("Aimbot", "UseFov", false, "Limit aimbot to FOV cone.");
             DrawFov = cfg.Bind("Aimbot", "DrawFov", false, "Draw FOV circle.");
-            FovRadius = cfg.Bind("Aimbot", "FovRadius", 150f, "FOV circle radius.");
-            MaxRange = cfg.Bind("Aimbot", "MaxRange", 400f, "Aimbot max range.");
+            FovRadius = cfg.Bind("Aimbot", "FovRadius", 60f, "FOV cone in degrees.");
+            MaxRange = cfg.Bind("Aimbot", "MaxRange", 300f, "Aimbot max range.");
+            AimSorting = cfg.Bind("Aimbot", "Priority", 0, "Target priority: 0 crosshair, 1 distance, 2 lowest HP, 3 highest HP.");
+            AimHighlight = cfg.Bind("Aimbot", "HighlightTarget", true, "Highlight the locked target.");
 
             // ESP Binds
             EspMobs = cfg.Bind("ESP", "EspMobs", false, "Show enemy ESP.");
@@ -190,6 +205,7 @@ namespace PoppyMenu
             // Items Binds
             SaleStarCheat = cfg.Bind("Items", "SaleStarCheat", false, "Force Sale Star to drop a specific amount of items.");
             SaleStarDropCount = cfg.Bind("Items", "SaleStarDropCount", 5, new ConfigDescription("Number of items for Sale Star to drop.", new AcceptableValueRange<int>(2, 5)));
+            GiveCount = cfg.Bind("Items", "GiveCount", 1, new ConfigDescription("Stack size for Give Item and Give All.", new AcceptableValueRange<int>(1, 1000)));
 
             // Stats Binds
             StatDmgOn = cfg.Bind("Stats", "DamageOn", false, "Damage multiplier toggle.");
@@ -205,6 +221,18 @@ namespace PoppyMenu
             StatHpOn = cfg.Bind("Stats", "MaxHealthOn", false, "Max health multiplier toggle.");
             StatHpMult = cfg.Bind("Stats", "MaxHealthMult", 1f, "Max health multiplier.");
             GuaranteedShrineChance = cfg.Bind("World", "GuaranteedShrineChance", false, "100% success rate on Shrine of Chance.");
+            InfiniteShrineChance = cfg.Bind("World", "InfiniteShrineChance", false, "Shrine of Chance never closes.");
+            NoEnemies = cfg.Bind("World", "NoEnemies", false, "Kill hostile bodies on spawn (host).");
+            LockExp = cfg.Bind("World", "LockExp", false, "Block experience gain.");
+            PreventProfileWriting = cfg.Bind("World", "PreventProfileWriting", false, "Do not save the game profile.");
+            TeleporterInstaCharge = cfg.Bind("Teleporter", "InstantCharge", false, "Instantly fill charge zones.");
+            RailgunnerInstaCharge = cfg.Bind("Fun", "RailgunnerInstaCharge", false, "Railgunner instant charge.");
+            RailgunnerNoUltCooldown = cfg.Bind("Fun", "RailgunnerNoUltCooldown", false, "Railgunner no ult cooldown.");
+            RailgunnerUltSpam = cfg.Bind("Fun", "RailgunnerUltSpam", false, "Railgunner ult spam.");
+
+            // Sliders assign entries every frame while dragged. Write the file only from Save()
+            // (menu close, game quit, preset load) instead of on every change.
+            cfg.SaveOnConfigSet = false;
 
             LoadFromConfig();
         }
@@ -224,9 +252,18 @@ namespace PoppyMenu
             Aim.ShowFovCircle = DrawFov.Value;
             Aim.Fov = FovRadius.Value;
             Aim.MaxRange = MaxRange.Value;
+            Aim.Sorting = AimSorting.Value;
+            Aim.Highlight = AimHighlight.Value;
 
             RenderModule.EspMobs = EspMobs.Value;
             RenderModule.EspInteractables = EspInteractables.Value;
+            RenderModule.EspFilterChests = EspFilterChests.Value;
+            RenderModule.EspFilterShrines = EspFilterShrines.Value;
+            RenderModule.EspFilterPrinters = EspFilterPrinters.Value;
+            RenderModule.EspFilterScrappers = EspFilterScrappers.Value;
+            RenderModule.EspFilterDrones = EspFilterDrones.Value;
+            RenderModule.EspFilterBarrels = EspFilterBarrels.Value;
+            RenderModule.EspFilterOther = EspFilterOther.Value;
             RenderModule.EspTeleporter = EspTeleporter.Value;
             RenderModule.ShowNames = EspShowNames.Value;
             RenderModule.ShowDistance = EspShowDistance.Value;
@@ -254,6 +291,7 @@ namespace PoppyMenu
             ItemsModule.NoEquipmentCooldown = NoEquipCooldown.Value;
             ItemsModule.SaleStarCheat = SaleStarCheat.Value;
             ItemsModule.SaleStarDropCount = SaleStarDropCount.Value;
+            ItemsModule.GiveCount = GiveCount.Value;
 
             StatsModule.DamageOn = StatDmgOn.Value;
             StatsModule.DamageMult = StatDmgMult.Value;
@@ -268,13 +306,28 @@ namespace PoppyMenu
             StatsModule.MaxHealthOn = StatHpOn.Value;
             StatsModule.MaxHealthMult = StatHpMult.Value;
             WorldModule.GuaranteedShrineChance = GuaranteedShrineChance.Value;
+            WorldModule.InfiniteShrineChance = InfiniteShrineChance.Value;
+            TeleporterModule.InstaCharge = TeleporterInstaCharge.Value;
+            Safety.NoEnemies = NoEnemies.Value;
+            Safety.LockExp = LockExp.Value;
+            Safety.PreventProfileWriting = PreventProfileWriting.Value;
+            FunModule.RailgunnerInstaCharge = RailgunnerInstaCharge.Value;
+            FunModule.RailgunnerNoUltCooldown = RailgunnerNoUltCooldown.Value;
+            FunModule.RailgunnerUltSpam = RailgunnerUltSpam.Value;
         }
 
         internal static void Save()
         {
             if (_cfg == null) return;
 
-            AimbotActive.Value = Aim.Enabled || Aim.Active;
+            CaptureRuntime();
+            try { _cfg.Save(); }
+            catch (System.Exception e) { Log.Error("Config save failed: " + e); }
+        }
+
+        private static void CaptureRuntime()
+        {
+            AimbotActive.Value = Aim.Enabled;
             TargetWeakPoints.Value = Aim.TargetWeakPoints;
             NoSpread.Value = Aim.NoSpread;
             NoRecoil.Value = Aim.NoRecoil;
@@ -286,9 +339,18 @@ namespace PoppyMenu
             DrawFov.Value = Aim.ShowFovCircle;
             FovRadius.Value = Aim.Fov;
             MaxRange.Value = Aim.MaxRange;
+            AimSorting.Value = Aim.Sorting;
+            AimHighlight.Value = Aim.Highlight;
 
             EspMobs.Value = RenderModule.EspMobs;
             EspInteractables.Value = RenderModule.EspInteractables;
+            EspFilterChests.Value = RenderModule.EspFilterChests;
+            EspFilterShrines.Value = RenderModule.EspFilterShrines;
+            EspFilterPrinters.Value = RenderModule.EspFilterPrinters;
+            EspFilterScrappers.Value = RenderModule.EspFilterScrappers;
+            EspFilterDrones.Value = RenderModule.EspFilterDrones;
+            EspFilterBarrels.Value = RenderModule.EspFilterBarrels;
+            EspFilterOther.Value = RenderModule.EspFilterOther;
             EspTeleporter.Value = RenderModule.EspTeleporter;
             EspShowNames.Value = RenderModule.ShowNames;
             EspShowDistance.Value = RenderModule.ShowDistance;
@@ -322,6 +384,7 @@ namespace PoppyMenu
             NoEquipCooldown.Value = ItemsModule.NoEquipmentCooldown;
             SaleStarCheat.Value = ItemsModule.SaleStarCheat;
             SaleStarDropCount.Value = ItemsModule.SaleStarDropCount;
+            GiveCount.Value = ItemsModule.GiveCount;
 
             StatDmgOn.Value = StatsModule.DamageOn;
             StatDmgMult.Value = StatsModule.DamageMult;
@@ -336,8 +399,14 @@ namespace PoppyMenu
             StatHpOn.Value = StatsModule.MaxHealthOn;
             StatHpMult.Value = StatsModule.MaxHealthMult;
             GuaranteedShrineChance.Value = WorldModule.GuaranteedShrineChance;
-
-            _cfg.Save();
+            InfiniteShrineChance.Value = WorldModule.InfiniteShrineChance;
+            TeleporterInstaCharge.Value = TeleporterModule.InstaCharge;
+            NoEnemies.Value = Safety.NoEnemies;
+            LockExp.Value = Safety.LockExp;
+            PreventProfileWriting.Value = Safety.PreventProfileWriting;
+            RailgunnerInstaCharge.Value = FunModule.RailgunnerInstaCharge;
+            RailgunnerNoUltCooldown.Value = FunModule.RailgunnerNoUltCooldown;
+            RailgunnerUltSpam.Value = FunModule.RailgunnerUltSpam;
         }
     }
 }

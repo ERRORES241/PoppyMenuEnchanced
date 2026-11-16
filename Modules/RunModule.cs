@@ -35,7 +35,7 @@ namespace PoppyMenu
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Change Stage");
-            Widgets.PickerButton("Go to scene...", "Scenes", SceneRows());
+            Widgets.PickerButton("Go to scene...", "Scenes", SceneRows);
             Widgets.SectionEnd();
 
             DrawArtifacts();
@@ -47,13 +47,29 @@ namespace PoppyMenu
             var defs = SceneCatalog.allSceneDefs;
             foreach (SceneDef def in defs)
             {
-                if (def == null) continue;
+                if (def == null || !IsPlayable(def)) continue;
                 SceneDef d = def;
                 string name = Language.GetString(d.nameToken);
                 if (string.IsNullOrEmpty(name) || name == d.nameToken) name = d.cachedName;
                 rows.Add(new ListPicker.Row(name, Color.white, () => NetUtil.Do(PoppyOp.ChangeScene, i1: (int)d.sceneDefIndex)));
             }
             return rows;
+        }
+
+        // Menus, cutscenes and junk scenes (title, lobby, logbook, intro/outro) break the run when advanced to.
+        private static bool IsPlayable(SceneDef def)
+        {
+            if (def.isOfflineScene) return false;
+            switch (def.sceneType)
+            {
+                case SceneType.Stage:
+                case SceneType.UntimedStage:
+                case SceneType.Intermission:
+                case SceneType.TimedIntermission:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private static void DrawArtifacts()

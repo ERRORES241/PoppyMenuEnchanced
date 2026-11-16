@@ -67,9 +67,9 @@ namespace PoppyMenu
 
             Widgets.SectionBegin("Buffs & DoTs");
             _buffDuration = Widgets.Slider("Buff duration (0 = permanent)", _buffDuration, 0f, 60f);
-            Widgets.PickerButton("Give Buff...", "Buffs", BuffRows());
+            Widgets.PickerButton("Give Buff...", "Buffs", BuffRows);
             Widgets.Button("Remove All Buffs", () => NetUtil.Do(PoppyOp.RemoveAllBuffs));
-            Widgets.PickerButton("Inflict DoT...", "Damage over time", DotRows());
+            Widgets.PickerButton("Inflict DoT...", "Damage over time", DotRows);
             Widgets.SectionEnd();
         }
 

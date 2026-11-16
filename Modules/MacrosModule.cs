@@ -19,7 +19,7 @@ namespace PoppyMenu
             if (GUILayout.Button("+ New Macro", Theme.Primary, GUILayout.Width(110)))
             {
                 string name = string.IsNullOrWhiteSpace(_newName) ? "Macro " + (MacroStore.Macros.Count + 1) : _newName.Trim();
-                MacroStore.Macros.Add(new Macro { Name = name });
+                MacroStore.Macros.Add(new Macro { Id = MacroStore.NewId(), Name = name });
                 MacroStore.Save();
                 _newName = "";
                 _expanded = MacroStore.Macros.Count - 1;
@@ -45,14 +45,14 @@ namespace PoppyMenu
                     _expanded = _expanded == i ? -1 : i;
                 GUILayout.EndHorizontal();
 
-                KeyCode key = BindStore.KeyFor("macro:" + m.Name);
+                KeyCode key = BindStore.KeyFor(MacroStore.BindKey(m));
                 Widgets.Hint(m.Steps.Count + (m.Steps.Count == 1 ? " step" : " steps") +
                              (key != KeyCode.None ? "   bound to [" + key + "]" : ""));
 
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Run now", Theme.Primary)) MacroStore.Run(m.Name);
+                if (GUILayout.Button("Run now", Theme.Primary)) MacroStore.Run(m.Id);
                 Macro bindTarget = m;
-                if (GUILayout.Button("Bind key", Theme.Button)) Rebind.Capture(kc => BindStore.Add(kc, "macro:" + bindTarget.Name));
+                if (GUILayout.Button("Bind key", Theme.Button)) Rebind.Capture(kc => BindStore.Add(kc, MacroStore.BindKey(bindTarget)));
                 GUILayout.EndHorizontal();
                 if (Rebind.IsActive) Widgets.Hint("Press a key or button to bind this macro. Esc cancels.");
 
@@ -79,7 +79,7 @@ namespace PoppyMenu
             if (m.Steps.Count == 0) Widgets.Hint("No steps yet. Use the buttons above to add any item, buff, spawn, feature, and more.");
 
             Widgets.Separator();
-            Widgets.ConfirmButton("macro.delete." + m.Name, "Delete this macro", () => _pendingDelete = m);
+            Widgets.ConfirmButton("macro.delete." + m.Id, "Delete this macro", () => _pendingDelete = m);
         }
     }
 }

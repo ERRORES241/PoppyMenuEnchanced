@@ -11,7 +11,7 @@ namespace PoppyMenu
         {
             Widgets.SectionBegin("Add a keybind");
             Widgets.Hint("Pick any feature, then press the key or mouse button you want. Bindings fire while the menu is closed.");
-            Widgets.PickerButton("Bind a feature...", "Pick a feature", ActionRows());
+            Widgets.PickerButton("Bind a feature...", "Pick a feature", ActionRows);
             if (Rebind.IsActive) Widgets.Hint("Now press a key or button. Esc cancels.");
             Widgets.SectionEnd();
 
@@ -24,6 +24,11 @@ namespace PoppyMenu
                 Bind b = BindStore.Binds[i];
                 PoppyAction act = ActionRegistry.Get(b.ActionId);
                 string label = act != null ? act.Category + ": " + act.Name : b.ActionId;
+                if (act == null && b.ActionId != null && b.ActionId.StartsWith(MacroStore.BindPrefix))
+                {
+                    Macro bound = MacroStore.Get(b.ActionId.Substring(MacroStore.BindPrefix.Length));
+                    label = bound != null ? "Macro: " + bound.Name : "Macro (deleted)";
+                }
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(label, Theme.Label, GUILayout.ExpandWidth(true));
@@ -53,7 +58,7 @@ namespace PoppyMenu
             {
                 Macro macro = m;
                 rows.Add(new ListPicker.Row("Macro: " + macro.Name, Color.yellow,
-                    () => Rebind.Capture(kc => BindStore.Add(kc, "macro:" + macro.Name))));
+                    () => Rebind.Capture(kc => BindStore.Add(kc, MacroStore.BindKey(macro)))));
             }
             return rows;
         }

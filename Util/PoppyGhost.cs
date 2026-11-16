@@ -10,6 +10,7 @@ namespace PoppyMenu
         private Collider[] _cols;
         private Rigidbody _rb;
         private readonly HashSet<Collider> _ignored = new HashSet<Collider>();
+        private static readonly Collider[] _hits = new Collider[64];
 
         private void Start()
         {
@@ -32,10 +33,10 @@ namespace PoppyMenu
             float r = 10f;
             if (_rb != null) r = Mathf.Max(r, _rb.velocity.magnitude * Time.fixedDeltaTime * 3f);
 
-            Collider[] hits = Physics.OverlapSphere(transform.position, r, LayerIndex.world.mask, QueryTriggerInteraction.Collide);
-            for (int i = 0; i < hits.Length; i++)
+            int count = Physics.OverlapSphereNonAlloc(transform.position, r, _hits, LayerIndex.world.mask, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < count; i++)
             {
-                Collider wc = hits[i];
+                Collider wc = _hits[i];
                 if (wc == null || _ignored.Contains(wc)) continue;
                 _ignored.Add(wc);
                 for (int j = 0; j < _cols.Length; j++)

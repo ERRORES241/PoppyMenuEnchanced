@@ -37,7 +37,7 @@ namespace PoppyMenu
         private static GUIStyle _labelStyle;
         private static PressurePlateController[] _plates = new PressurePlateController[0];
         private static ShrineCleanseBehavior[] _cleansePools = new ShrineCleanseBehavior[0];
-        private static SceneDef _lastStageScene;
+        private static Stage _lastStage;
         private const float DefaultFov = 60f; // CameraRigController.baseFov default
         private static bool _fovApplied;
 
@@ -45,7 +45,7 @@ namespace PoppyMenu
         {
             if (!PlayerContext.InGame)
             {
-                _lastStageScene = null;
+                _lastStage = null;
                 return;
             }
 
@@ -61,10 +61,10 @@ namespace PoppyMenu
                 _fovApplied = FovOverride;
             }
 
-            SceneDef currentScene = Stage.instance != null ? Stage.instance.sceneDef : null;
-            if (currentScene != _lastStageScene)
+            Stage stage = Stage.instance;
+            if (stage != _lastStage)
             {
-                _lastStageScene = currentScene;
+                _lastStage = stage;
                 RefreshStageObjects();
             }
         }
@@ -129,293 +129,359 @@ namespace PoppyMenu
 
             try
             {
-                if (EspMobs)
+                try
                 {
-                    CharacterBody me = PlayerContext.Body;
-                    TeamIndex myTeam = me != null && me.teamComponent != null ? me.teamComponent.teamIndex : TeamIndex.Player;
-
-                    var bodies = CharacterBody.readOnlyInstancesList;
-                    for (int i = 0; i < bodies.Count; i++)
+                    if (EspMobs)
                     {
-                        CharacterBody body = bodies[i];
-                        if (body == null || body == me) continue;
-                        if (body.healthComponent == null || !body.healthComponent.alive) continue;
-                        if (body.teamComponent == null) continue;
+                        CharacterBody me = PlayerContext.Body;
+                        TeamIndex myTeam = me != null && me.teamComponent != null ? me.teamComponent.teamIndex : TeamIndex.Player;
 
-                        TeamIndex t = body.teamComponent.teamIndex;
-                        if (t == myTeam || t == TeamIndex.None || t == TeamIndex.Neutral || t == TeamIndex.Player) continue;
+                        var bodies = CharacterBody.readOnlyInstancesList;
+                        for (int i = 0; i < bodies.Count; i++)
+                        {
+                            CharacterBody body = bodies[i];
+                            if (body == null || body == me) continue;
+                            if (body.healthComponent == null || !body.healthComponent.alive) continue;
+                            if (body.teamComponent == null) continue;
 
-                        if (Culled(origin, body.corePosition, out float dist)) continue;
-                        DrawMarker(cam, body.corePosition, EnemyMultiLineLabel(body, dist), EnemyColor);
+                            TeamIndex t = body.teamComponent.teamIndex;
+                            if (t == myTeam || t == TeamIndex.None || t == TeamIndex.Neutral || t == TeamIndex.Player) continue;
+
+                            if (Culled(origin, body.corePosition, out float dist)) continue;
+                            DrawMarker(cam, body.corePosition, EnemyMultiLineLabel(body, dist), EnemyColor);
+                        }
                     }
                 }
+                catch (System.Exception e) { EspFail("enemies", e); }
 
                 if (EspInteractables)
                 {
-                    // 1. PurchaseInteractions (Chests, Multishops, Printers, Shrines, Lunar Pods) via InstanceTracker
-                    var purchases = InstanceTracker.GetInstancesList<PurchaseInteraction>();
-                    if (purchases != null)
+                    try
                     {
-                        for (int i = 0; i < purchases.Count; i++)
+                        // 1. PurchaseInteractions (Chests, Multishops, Printers, Shrines, Lunar Pods) via InstanceTracker
+                        var purchases = InstanceTracker.GetInstancesList<PurchaseInteraction>();
+                        if (purchases != null)
                         {
-                            PurchaseInteraction pi = purchases[i];
-                            if (pi == null || !pi.available || pi.transform == null) continue;
+                            for (int i = 0; i < purchases.Count; i++)
+                            {
+                                PurchaseInteraction pi = purchases[i];
+                                if (pi == null || !pi.available || pi.transform == null) continue;
                             
-                            string goName = pi.gameObject.name.ToLowerInvariant();
-                            if (goName.Contains("chest") || goName.Contains("multishop") || goName.Contains("terminal") || goName.Contains("lockbox") || goName.Contains("cradle"))
-                            {
-                                if (!EspFilterChests) continue;
-                            }
-                            else if (goName.Contains("shrine"))
-                            {
-                                if (!EspFilterShrines) continue;
-                            }
-                            else if (goName.Contains("duplicator") || goName.Contains("printer"))
-                            {
-                                if (!EspFilterPrinters) continue;
-                            }
-                            else if (goName.Contains("scrapper"))
-                            {
-                                if (!EspFilterScrappers) continue;
-                            }
-                            else if (goName.Contains("drone") || goName.Contains("turret"))
-                            {
-                                if (!EspFilterDrones) continue;
-                            }
-                            else
-                            {
-                                if (!EspFilterOther) continue;
-                            }
+                                string goName = pi.gameObject.name;
+                                if (Has(goName, "chest") || Has(goName, "multishop") || Has(goName, "terminal") || Has(goName, "lockbox") || Has(goName, "cradle"))
+                                {
+                                    if (!EspFilterChests) continue;
+                                }
+                                else if (Has(goName, "shrine"))
+                                {
+                                    if (!EspFilterShrines) continue;
+                                }
+                                else if (Has(goName, "duplicator") || Has(goName, "printer"))
+                                {
+                                    if (!EspFilterPrinters) continue;
+                                }
+                                else if (Has(goName, "scrapper"))
+                                {
+                                    if (!EspFilterScrappers) continue;
+                                }
+                                else if (Has(goName, "drone") || Has(goName, "turret"))
+                                {
+                                    if (!EspFilterDrones) continue;
+                                }
+                                else
+                                {
+                                    if (!EspFilterOther) continue;
+                                }
 
-                            if (Culled(origin, pi.transform.position, out float dist)) continue;
+                                if (Culled(origin, pi.transform.position, out float dist)) continue;
 
-                            string label = GetInteractableMultiLineLabel(pi, dist, out Color itemCol);
-                            DrawMarker(cam, pi.transform.position, label, itemCol);
+                                string label = GetInteractableMultiLineLabel(pi, dist, out Color itemCol);
+                                DrawMarker(cam, pi.transform.position, label, itemCol);
+                            }
                         }
                     }
+                    catch (System.Exception e) { EspFail("purchases", e); }
 
 
 
-                    // 2. Barrels via InstanceTracker
-                    if (EspFilterBarrels)
+                    try
                     {
-                        var barrels = InstanceTracker.GetInstancesList<BarrelInteraction>();
-                        if (barrels != null)
+                        // 2. Barrels via InstanceTracker
+                        if (EspFilterBarrels)
                         {
-                            for (int i = 0; i < barrels.Count; i++)
+                            var barrels = InstanceTracker.GetInstancesList<BarrelInteraction>();
+                            if (barrels != null)
                             {
-                                BarrelInteraction barrel = barrels[i];
-                            if (barrel == null || barrel.opened || barrel.transform == null) continue;
-                            if (Culled(origin, barrel.transform.position, out float dist)) continue;
+                                for (int i = 0; i < barrels.Count; i++)
+                                {
+                                    BarrelInteraction barrel = barrels[i];
+                                if (barrel == null || barrel.opened || barrel.transform == null) continue;
+                                if (Culled(origin, barrel.transform.position, out float dist)) continue;
 
-                            string nameStr = barrel.GetDisplayName();
-                            if (string.IsNullOrEmpty(nameStr)) nameStr = "Barrel";
-                            string bName = ShowNames ? $"{nameStr} ($0)" : "";
+                                string nameStr = barrel.GetDisplayName();
+                                if (string.IsNullOrEmpty(nameStr)) nameStr = "Barrel";
+                                string bName = ShowNames ? $"{nameStr} ($0)" : "";
 
-                            Color col = new Color(0.85f, 0.82f, 0.55f);
-                            if (barrel.name != null && barrel.name.IndexOf("Void", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                                col = new Color(0.75f, 0.35f, 0.9f);
+                                Color col = new Color(0.85f, 0.82f, 0.55f);
+                                if (barrel.name != null && barrel.name.IndexOf("Void", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                                    col = new Color(0.75f, 0.35f, 0.9f);
 
+                                string dStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
+                                string label = BuildMultiLine(bName, "", dStr);
+                                DrawMarker(cam, barrel.transform.position, label, col);
+                            }
+                        }
+                        }
+                    }
+                    catch (System.Exception e) { EspFail("barrels", e); }
+
+                    try
+                    {
+                        // 3. ChestBehaviors (Timed Chests, etc.) via InstanceTracker
+                        var chests = InstanceTracker.GetInstancesList<ChestBehavior>();
+                        if (chests != null)
+                        {
+                            for (int i = 0; i < chests.Count; i++)
+                            {
+                                ChestBehavior chest = chests[i];
+                                if (chest == null || chest.transform == null) continue;
+                                TimedChestController timed = chest.GetComponent<TimedChestController>();
+                                if (timed == null) continue;
+                                if (Culled(origin, timed.transform.position, out float dist)) continue;
+
+                                string tName = ShowNames ? "Timed Chest" : "";
+                                string dStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
+                                string label = BuildMultiLine(tName, "[Legendary]", dStr);
+                                DrawMarker(cam, timed.transform.position, label, new Color(0.9f, 0.22f, 0.29f));
+                            }
+                        }
+                    }
+                    catch (System.Exception e) { EspFail("timed chests", e); }
+
+                    try
+                    {
+                        // 4. Secret Pressure Plates
+                        for (int i = 0; i < _plates.Length; i++)
+                        {
+                            PressurePlateController plate = _plates[i];
+                            if (plate == null || plate.transform == null) continue;
+                            if (Culled(origin, plate.transform.position, out float dist)) continue;
+
+                            string pName = ShowNames ? "Secret Button" : "";
                             string dStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
-                            string label = BuildMultiLine(bName, "", dStr);
-                            DrawMarker(cam, barrel.transform.position, label, col);
+                            string label = BuildMultiLine(pName, "", dStr);
+                            DrawMarker(cam, plate.transform.position, label, new Color(0.2f, 0.9f, 0.8f));
                         }
                     }
-                    }
+                    catch (System.Exception e) { EspFail("pressure plates", e); }
 
-                    // 3. ChestBehaviors (Timed Chests, etc.) via InstanceTracker
-                    var chests = InstanceTracker.GetInstancesList<ChestBehavior>();
-                    if (chests != null)
+                    try
                     {
-                        for (int i = 0; i < chests.Count; i++)
+                        // 5. Pickups via InstanceTracker
+                        if (EspFilterOther)
                         {
-                            ChestBehavior chest = chests[i];
-                            if (chest == null || chest.transform == null) continue;
-                            TimedChestController timed = chest.GetComponent<TimedChestController>();
-                            if (timed == null) continue;
-                            if (Culled(origin, timed.transform.position, out float dist)) continue;
-
-                            string tName = ShowNames ? "Timed Chest" : "";
-                            string dStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
-                            string label = BuildMultiLine(tName, "[Legendary]", dStr);
-                            DrawMarker(cam, timed.transform.position, label, new Color(0.9f, 0.22f, 0.29f));
-                        }
-                    }
-
-                    // 4. Secret Pressure Plates
-                    for (int i = 0; i < _plates.Length; i++)
-                    {
-                        PressurePlateController plate = _plates[i];
-                        if (plate == null || plate.transform == null) continue;
-                        if (Culled(origin, plate.transform.position, out float dist)) continue;
-
-                        string pName = ShowNames ? "Secret Button" : "";
-                        string dStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
-                        string label = BuildMultiLine(pName, "", dStr);
-                        DrawMarker(cam, plate.transform.position, label, new Color(0.2f, 0.9f, 0.8f));
-                    }
-
-                    // 5. Pickups via InstanceTracker
-                    if (EspFilterOther)
-                    {
-                        var pickups = InstanceTracker.GetInstancesList<GenericPickupController>();
-                        if (pickups != null)
-                        {
-                            for (int i = 0; i < pickups.Count; i++)
+                            var pickups = InstanceTracker.GetInstancesList<GenericPickupController>();
+                            if (pickups != null)
                             {
-                                GenericPickupController gpc = pickups[i];
-                                if (gpc == null || gpc.transform == null) continue;
-                                if (Culled(origin, gpc.transform.position, out float dist)) continue;
+                                for (int i = 0; i < pickups.Count; i++)
+                                {
+                                    GenericPickupController gpc = pickups[i];
+                                    if (gpc == null || gpc.transform == null) continue;
+                                    if (Culled(origin, gpc.transform.position, out float dist)) continue;
 
-                                string label = GetPickupMultiLineLabel(gpc, dist, out Color itemCol);
-                                DrawMarker(cam, gpc.transform.position, label, itemCol);
+                                    string label = GetPickupMultiLineLabel(gpc, dist, out Color itemCol);
+                                    DrawMarker(cam, gpc.transform.position, label, itemCol);
+                                }
+                            }
+                        }
+                    }
+                    catch (System.Exception e) { EspFail("pickups", e); }
+
+                    try
+                    {
+                        // 5b. DLC2-4 interactables that are not PurchaseInteractions (Wok, Drone Scrapper, Wake, Hex altars...)
+                        DrawSpecialInteractables(cam, origin);
+                    }
+                    catch (System.Exception e) { EspFail("special interactables", e); }
+
+                    try
+                    {
+                        // 6. PickupPickerControllers (Scrappers, Void Potentials, Command Cubes)
+                        var pickers = InstanceTracker.GetInstancesList<PickupPickerController>();
+                        if (pickers != null)
+                        {
+                            for (int i = 0; i < pickers.Count; i++)
+                            {
+                                PickupPickerController picker = pickers[i];
+                                if (picker == null || !picker.available || picker.transform == null) continue;
+                                bool isScrapper = picker.gameObject.name.IndexOf("Scrapper", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                                if (isScrapper ? !EspFilterScrappers : !EspFilterOther) continue;
+                            
+                                // Skip if attached to GenericPickupController (some Command Cubes might have it, but usually they don't)
+                                if (picker.GetComponent<GenericPickupController>() != null) continue;
+                                if (Culled(origin, picker.transform.position, out float dist)) continue;
+
+                                string objName = picker.gameObject.name;
+                                string pName = picker.GetContextString(null);
+                                Color pColor = new Color(0.85f, 0.4f, 0.1f); // Default Orange
+
+                                if (objName.IndexOf("CommandCube", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    PickupIndexNetworker networker = picker.GetComponent<PickupIndexNetworker>();
+                                    if (networker != null)
+                                    {
+                                        string contentName = GetPickupContentInfo(networker.NetworkpickupState.pickupIndex, out Color itemCol, isInteractable: false, isUnchosenCommandCube: true);
+                                        if (itemCol != Color.clear) pColor = itemCol;
+                                        pName = ShowNames ? (!string.IsNullOrEmpty(contentName) ? contentName : "Command Cube") : "";
+                                    }
+                                }
+                                else
+                                {
+                                    if (string.IsNullOrEmpty(pName))
+                                    {
+                                        if (objName.IndexOf("Scrapper", System.StringComparison.OrdinalIgnoreCase) >= 0) pName = "Scrapper";
+                                        else if (objName.IndexOf("Void", System.StringComparison.OrdinalIgnoreCase) >= 0 || objName.IndexOf("OptionPickup", System.StringComparison.OrdinalIgnoreCase) >= 0) pName = "Void Potential";
+                                        else pName = objName.Replace("(Clone)", "").Trim();
+                                    }
+                                    else if (!ShowNames)
+                                    {
+                                        pName = "";
+                                    }
+
+                                    if (objName.IndexOf("Void", System.StringComparison.OrdinalIgnoreCase) >= 0 || objName.IndexOf("OptionPickup", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                                        pColor = new Color(0.8f, 0.3f, 0.8f); // Purple for Void Potentials
+                                }
+
+                                string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
+                                DrawMarker(cam, picker.transform.position, label, pColor);
                             }
                         }
                     }
+                    catch (System.Exception e) { EspFail("pickers", e); }
 
-                    // 5b. DLC2-4 interactables that are not PurchaseInteractions (Wok, Drone Scrapper, Wake, Hex altars...)
-                    DrawSpecialInteractables(cam, origin);
-
-                    // 6. PickupPickerControllers (Scrappers, Void Potentials, Command Cubes)
-                    var pickers = InstanceTracker.GetInstancesList<PickupPickerController>();
-                    if (pickers != null)
+                    try
                     {
-                        for (int i = 0; i < pickers.Count; i++)
+                        // 7. Cleansing Pools (Not in InstanceTracker)
+                        if (_cleansePools != null)
                         {
-                            PickupPickerController picker = pickers[i];
-                            if (picker == null || !picker.available || picker.transform == null) continue;
-                            bool isScrapper = picker.gameObject.name.IndexOf("Scrapper", System.StringComparison.OrdinalIgnoreCase) >= 0;
-                            if (isScrapper ? !EspFilterScrappers : !EspFilterOther) continue;
-                            
-                            // Skip if attached to GenericPickupController (some Command Cubes might have it, but usually they don't)
-                            if (picker.GetComponent<GenericPickupController>() != null) continue;
-                            if (Culled(origin, picker.transform.position, out float dist)) continue;
-
-                            string objName = picker.gameObject.name;
-                            string pName = picker.GetContextString(null);
-                            Color pColor = new Color(0.85f, 0.4f, 0.1f); // Default Orange
-
-                            if (objName.IndexOf("CommandCube", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                            for (int i = 0; i < _cleansePools.Length; i++)
                             {
-                                PickupIndexNetworker networker = picker.GetComponent<PickupIndexNetworker>();
-                                if (networker != null)
-                                {
-                                    string contentName = GetPickupContentInfo(networker.NetworkpickupState.pickupIndex, out Color itemCol, isInteractable: false, isUnchosenCommandCube: true);
-                                    if (itemCol != Color.clear) pColor = itemCol;
-                                    pName = ShowNames ? (!string.IsNullOrEmpty(contentName) ? contentName : "Command Cube") : "";
-                                }
+                                ShrineCleanseBehavior pool = _cleansePools[i];
+                                if (pool == null || pool.transform == null) continue;
+                                if (Culled(origin, pool.transform.position, out float dist)) continue;
+
+                                string pName = ShowNames ? Language.GetString(pool.contextToken) : "";
+                                if (string.IsNullOrEmpty(pName) || pName == pool.contextToken) pName = "Cleansing Pool";
+                            
+                                string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
+                                DrawMarker(cam, pool.transform.position, label, new Color(0.9f, 0.9f, 0.9f));
                             }
-                            else
+                        }
+                    }
+                    catch (System.Exception e) { EspFail("cleansing pools", e); }
+
+                    try
+                    {
+                        // 8. Bazaar Upgrade Interactions (Lunar Seers / Soup Cauldrons)
+                        var bazaarUpgrades = InstanceTracker.GetInstancesList<BazaarUpgradeInteraction>();
+                        if (bazaarUpgrades != null)
+                        {
+                            for (int i = 0; i < bazaarUpgrades.Count; i++)
                             {
-                                if (string.IsNullOrEmpty(pName))
-                                {
-                                    if (objName.IndexOf("Scrapper", System.StringComparison.OrdinalIgnoreCase) >= 0) pName = "Scrapper";
-                                    else if (objName.IndexOf("Void", System.StringComparison.OrdinalIgnoreCase) >= 0 || objName.IndexOf("OptionPickup", System.StringComparison.OrdinalIgnoreCase) >= 0) pName = "Void Potential";
-                                    else pName = objName.Replace("(Clone)", "").Trim();
-                                }
-                                else if (!ShowNames)
-                                {
-                                    pName = "";
-                                }
+                                var upgrade = bazaarUpgrades[i];
+                                if (upgrade == null || !upgrade.available || upgrade.transform == null) continue;
+                                if (Culled(origin, upgrade.transform.position, out float dist)) continue;
 
-                                if (objName.IndexOf("Void", System.StringComparison.OrdinalIgnoreCase) >= 0 || objName.IndexOf("OptionPickup", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                                    pColor = new Color(0.8f, 0.3f, 0.8f); // Purple for Void Potentials
+                                string pName = ShowNames ? Language.GetString(upgrade.displayNameToken) : "";
+                                if (string.IsNullOrEmpty(pName) || pName == upgrade.displayNameToken) pName = "Bazaar Upgrade";
+                            
+                                string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
+                                DrawMarker(cam, upgrade.transform.position, label, new Color(0.3f, 0.5f, 0.9f));
                             }
-
-                            string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
-                            DrawMarker(cam, picker.transform.position, label, pColor);
                         }
                     }
+                    catch (System.Exception e) { EspFail("bazaar", e); }
 
-                    // 7. Cleansing Pools (Not in InstanceTracker)
-                    if (_cleansePools != null)
+                    try
                     {
-                        for (int i = 0; i < _cleansePools.Length; i++)
+                        // 9. Geode / Void Seed
+                        var geodes = InstanceTracker.GetInstancesList<GeodeController>();
+                        if (geodes != null && EspFilterOther)
                         {
-                            ShrineCleanseBehavior pool = _cleansePools[i];
-                            if (pool == null || pool.transform == null) continue;
-                            if (Culled(origin, pool.transform.position, out float dist)) continue;
+                            for (int i = 0; i < geodes.Count; i++)
+                            {
+                                var geode = geodes[i];
+                                if (geode == null || !geode.Networkavailable || geode.transform == null) continue;
+                                if (Culled(origin, geode.transform.position, out float dist)) continue;
 
-                            string pName = ShowNames ? Language.GetString(pool.contextToken) : "";
-                            if (string.IsNullOrEmpty(pName) || pName == pool.contextToken) pName = "Cleansing Pool";
-                            
-                            string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
-                            DrawMarker(cam, pool.transform.position, label, new Color(0.9f, 0.9f, 0.9f));
+                                string pName = ShowNames ? geode.GetDisplayName() : "";
+                                if (string.IsNullOrEmpty(pName) || pName == geode.displayNameToken) pName = "Void Seed / Geode";
+
+                                string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
+                                DrawMarker(cam, geode.transform.position, label, new Color(0.7f, 0.2f, 0.7f));
+                            }
                         }
                     }
+                    catch (System.Exception e) { EspFail("geodes", e); }
 
-                    // 8. Bazaar Upgrade Interactions (Lunar Seers / Soup Cauldrons)
-                    var bazaarUpgrades = InstanceTracker.GetInstancesList<BazaarUpgradeInteraction>();
-                    if (bazaarUpgrades != null)
+                    try
                     {
-                        for (int i = 0; i < bazaarUpgrades.Count; i++)
+                        // 10. Drone Combiner (Col. Droneman)
+                        var combiners = InstanceTracker.GetInstancesList<DroneCombinerController>();
+                        if (combiners != null && EspFilterDrones)
                         {
-                            var upgrade = bazaarUpgrades[i];
-                            if (upgrade == null || !upgrade.available || upgrade.transform == null) continue;
-                            if (Culled(origin, upgrade.transform.position, out float dist)) continue;
+                            for (int i = 0; i < combiners.Count; i++)
+                            {
+                                var combiner = combiners[i];
+                                if (combiner == null || combiner.transform == null) continue;
+                                if (Culled(origin, combiner.transform.position, out float dist)) continue;
 
-                            string pName = ShowNames ? Language.GetString(upgrade.displayNameToken) : "";
-                            if (string.IsNullOrEmpty(pName) || pName == upgrade.displayNameToken) pName = "Bazaar Upgrade";
-                            
-                            string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
-                            DrawMarker(cam, upgrade.transform.position, label, new Color(0.3f, 0.5f, 0.9f));
+                                string pName = ShowNames ? combiner.GetContextString(null) : "";
+                                if (string.IsNullOrEmpty(pName)) pName = "Drone Combiner";
+
+                                string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
+                                DrawMarker(cam, combiner.transform.position, label, new Color(0.8f, 0.8f, 0.8f));
+                            }
                         }
                     }
-
-                    // 9. Geode / Void Seed
-                    var geodes = InstanceTracker.GetInstancesList<GeodeController>();
-                    if (geodes != null && EspFilterOther)
-                    {
-                        for (int i = 0; i < geodes.Count; i++)
-                        {
-                            var geode = geodes[i];
-                            if (geode == null || !geode.Networkavailable || geode.transform == null) continue;
-                            if (Culled(origin, geode.transform.position, out float dist)) continue;
-
-                            string pName = ShowNames ? geode.GetDisplayName() : "";
-                            if (string.IsNullOrEmpty(pName) || pName == geode.displayNameToken) pName = "Void Seed / Geode";
-
-                            string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
-                            DrawMarker(cam, geode.transform.position, label, new Color(0.7f, 0.2f, 0.7f));
-                        }
-                    }
-
-                    // 10. Drone Combiner (Col. Droneman)
-                    var combiners = InstanceTracker.GetInstancesList<DroneCombinerController>();
-                    if (combiners != null && EspFilterDrones)
-                    {
-                        for (int i = 0; i < combiners.Count; i++)
-                        {
-                            var combiner = combiners[i];
-                            if (combiner == null || combiner.transform == null) continue;
-                            if (Culled(origin, combiner.transform.position, out float dist)) continue;
-
-                            string pName = ShowNames ? combiner.GetContextString(null) : "";
-                            if (string.IsNullOrEmpty(pName)) pName = "Drone Combiner";
-
-                            string label = BuildMultiLine(pName, "", ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "");
-                            DrawMarker(cam, combiner.transform.position, label, new Color(0.8f, 0.8f, 0.8f));
-                        }
-                    }
+                    catch (System.Exception e) { EspFail("drone combiners", e); }
 
                 }
 
-                if (EspTeleporter)
+                try
                 {
-                    if (TeleporterInteraction.instance != null)
+                    if (EspTeleporter)
                     {
-                        Vector3 tp = TeleporterInteraction.instance.transform.position;
-                        if (!Culled(origin, tp, out float dist))
+                        if (TeleporterInteraction.instance != null)
                         {
-                            string label = TeleporterMultiLineLabel(TeleporterInteraction.instance, dist);
-                            DrawMarker(cam, tp, label, TeleporterColor);
+                            Vector3 tp = TeleporterInteraction.instance.transform.position;
+                            if (!Culled(origin, tp, out float dist))
+                            {
+                                string label = TeleporterMultiLineLabel(TeleporterInteraction.instance, dist);
+                                DrawMarker(cam, tp, label, TeleporterColor);
+                            }
                         }
                     }
                 }
+                catch (System.Exception e) { EspFail("teleporter", e); }
 
-                DrawPortalsAndObjectives(cam, origin);
+                try
+                {
+                    DrawPortalsAndObjectives(cam, origin);
+                }
+                catch (System.Exception e) { EspFail("portals", e); }
             }
             catch { }
+        }
+
+        // Case-insensitive search without allocating a lowered copy of the name every frame.
+        private static bool Has(string s, string part) => s.IndexOf(part, System.StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static readonly HashSet<string> _espErrors = new HashSet<string>();
+
+        private static void EspFail(string section, System.Exception e)
+        {
+            if (_espErrors.Add(section)) Log.Error("ESP " + section + ": " + e);
         }
 
         private static bool IsCommandArtifactActive()
@@ -638,6 +704,18 @@ namespace PoppyMenu
         private static readonly System.Text.StringBuilder _costSb = new System.Text.StringBuilder();
         private static readonly System.Text.RegularExpressions.Regex _richTag = new System.Text.RegularExpressions.Regex("<[^>]*>");
 
+        // Quality mod (Gorakh) appends <sprite name="QualityUncommon|Rare|Epic|Legendary"> to item names.
+        // The game's TextMeshPro UI draws it as an icon; IMGUI would print the raw tag.
+        private static readonly System.Text.RegularExpressions.Regex _qualitySprite =
+            new System.Text.RegularExpressions.Regex("\\s*<sprite\\s+name\\s*=\\s*\"?Quality(\\w+)\"?[^>]*>");
+
+        private static string CleanLabel(string label)
+        {
+            if (label.IndexOf('<') < 0) return label; // nothing to clean, no allocation
+            label = _qualitySprite.Replace(label, " ($1)");
+            return _richTag.Replace(label, "");
+        }
+
         // Item, soul, wake flower, hex and other non-money costs use the game's own localized format.
         private static string GameCostString(CostTypeIndex type, int cost)
         {
@@ -799,6 +877,7 @@ namespace PoppyMenu
             Theme.Fill(new Rect(sp.x - half, y - half, MarkerSize, MarkerSize), color);
 
             if (string.IsNullOrEmpty(label)) return;
+            label = CleanLabel(label);
 
             if (_labelStyle == null)
             {

@@ -39,8 +39,9 @@ namespace PoppyMenu
             bool noUltCooldown = RailgunnerNoUltCooldown || RailgunnerUltSpam;
 
             {
-                // 1. Reset Special skill cooldown ONLY (Do NOT touch primary, secondary, utility)
-                if (body.skillLocator != null && body.skillLocator.special != null)
+                // 1. Reset Special skill cooldown ONLY (Do NOT touch primary, secondary, utility).
+                // Only for No Ult Cooldown / Ult Spam: Instant Ult Charge alone must not refill the ult.
+                if (noUltCooldown && body.skillLocator != null && body.skillLocator.special != null)
                 {
                     body.skillLocator.special.stock = body.skillLocator.special.maxStock;
                     body.skillLocator.special.rechargeStopwatch = 999f;

@@ -297,10 +297,11 @@ namespace PoppyMenu
          *  Picker Button  (▸ label)
          * ═══════════════════════════════════════════════════════════════ */
 
-        internal static void PickerButton(string text, string title, List<ListPicker.Row> rows)
+        // Rows are built only when the picker opens, not on every OnGUI call.
+        internal static void PickerButton(string text, string title, System.Func<List<ListPicker.Row>> rows)
         {
             if (GUILayout.Button("\u25B8  " + text, Theme.Button, GUILayout.Height(28)))
-                ListPicker.Open(title, rows);
+                ListPicker.Open(title, rows());
         }
     }
 }

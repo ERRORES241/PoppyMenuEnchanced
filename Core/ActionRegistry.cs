@@ -27,7 +27,7 @@ namespace PoppyMenu
         internal static void RunId(string id)
         {
             if (string.IsNullOrEmpty(id)) return;
-            if (id.StartsWith("macro:")) { MacroStore.Run(id.Substring("macro:".Length)); return; }
+            if (id.StartsWith(MacroStore.BindPrefix)) { MacroStore.Run(id.Substring(MacroStore.BindPrefix.Length)); return; }
             Run(id);
         }
 
@@ -73,14 +73,10 @@ namespace PoppyMenu
             Add("tp.skip", "Teleporter", "Skip stage", () => NetUtil.Do(PoppyOp.SkipStage));
             Add("tp.portals", "Teleporter", "Spawn all portals", () =>
             {
-                NetUtil.Do(PoppyOp.SpawnShopPortal);
-                NetUtil.Do(PoppyOp.SpawnGoldshoresPortal);
-                NetUtil.Do(PoppyOp.SpawnMSPortal);
-                TeleporterInteraction tp = TeleporterInteraction.instance;
-                Vector3 pos = tp != null ? tp.transform.position + UnityEngine.Random.insideUnitSphere * 5f : (PlayerContext.HasBody ? PlayerContext.Body.footPosition + UnityEngine.Random.insideUnitSphere * 5f : Vector3.zero);
-                NetUtil.Do(PoppyOp.Spawn, i1: 1, i2: (int)TeamIndex.Neutral, s1: "iscVoidPortal", f1: pos.x, f2: pos.y, f3: pos.z);
-                NetUtil.Do(PoppyOp.Spawn, i1: 1, i2: (int)TeamIndex.Neutral, s1: "iscDeepVoidPortal", f1: pos.x, f2: pos.y, f3: pos.z);
-                NetUtil.Do(PoppyOp.Spawn, i1: 1, i2: (int)TeamIndex.Neutral, s1: "iscColossusPortal", f1: pos.x, f2: pos.y, f3: pos.z);
+                // Around you, every destination portal right away (not on teleporter completion).
+                Vector3 pos = PlayerContext.HasBody ? PlayerContext.Body.footPosition
+                    : (TeleporterInteraction.instance != null ? TeleporterInteraction.instance.transform.position : Vector3.zero);
+                NetUtil.Do(PoppyOp.SpawnPortals, f1: pos.x, f2: pos.y, f3: pos.z);
             });
 
             Add("world.freeze", "World", "Freeze match", () => WorldModule.FreezeMatch = !WorldModule.FreezeMatch);
@@ -113,8 +109,9 @@ namespace PoppyMenu
             });
             Add("macro.dtzoom", "Macros", "Zoom items", () =>
             {
-                GiveByName("Hoof", 20);
-                GiveByName("Feather", 200);
+                // Item defs, not localized names: the lookup must work in any game language.
+                NetUtil.Do(PoppyOp.GiveItem, i1: (int)RoR2Content.Items.Hoof.itemIndex, i2: 20);
+                NetUtil.Do(PoppyOp.GiveItem, i1: (int)RoR2Content.Items.Feather.itemIndex, i2: 200);
                 Notify.Push("Zoom items granted");
             });
 
@@ -136,16 +133,5 @@ namespace PoppyMenu
                 NetUtil.Do(PoppyOp.GiveItem, i1: pool[UnityEngine.Random.Range(0, pool.Count)], i2: 1);
         }
 
-        private static void GiveByName(string name, int count)
-        {
-            foreach (var e in Catalogs.Items)
-            {
-                if (e.Name.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    NetUtil.Do(PoppyOp.GiveItem, i1: (int)e.Index, i2: count);
-                    break;
-                }
-            }
-        }
     }
 }

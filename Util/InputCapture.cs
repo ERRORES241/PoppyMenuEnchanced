@@ -30,6 +30,13 @@ namespace PoppyMenu
                 _h.Patch(raycastAll, prefix: new HarmonyMethod(typeof(InputCapture), nameof(EventSystemRaycastAllPrefix)));
         }
 
+        // True while the player types into the game's chat or console: keybinds must not fire then.
+        internal static bool IsTypingInGame()
+        {
+            try { return RoR2.UI.ChatBox.IsActive || RoR2.UI.ConsoleWindow.IsShown(); }
+            catch { return false; }
+        }
+
         internal static bool IsMouseOverUI()
         {
             Vector2 mousePos = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);

@@ -13,6 +13,9 @@ namespace PoppyMenu
 
         private static string _newConfigName = "";
         private static string _pendingDelete;
+        // Rename text per profile. Renaming happens on the button, not on every keystroke,
+        // so a half-typed name can never overwrite another profile.
+        private static readonly Dictionary<string, string> _renameText = new Dictionary<string, string>();
 
         private static string ConfigsFolder => Path.Combine(Paths.ConfigPath, "PoppyMenuConfigs");
 
@@ -73,12 +76,24 @@ namespace PoppyMenu
             _profileCache = null;
         }
 
-        internal static void RenameProfile(ConfigProfile profile, string newName)
+        internal static bool RenameProfile(ConfigProfile profile, string newName)
         {
-            if (profile == null || string.IsNullOrWhiteSpace(newName)) return;
+            if (profile == null || string.IsNullOrWhiteSpace(newName)) return false;
+            newName = newName.Trim();
+            string target = SanitizeFileName(newName);
+            if (target == SanitizeFileName(profile.Name ?? "")) { profile.Name = newName; SaveProfile(profile); return true; }
+            foreach (ConfigProfile other in GetSavedProfiles())
+            {
+                if (other != profile && SanitizeFileName(other.Name ?? "").Equals(target, StringComparison.OrdinalIgnoreCase))
+                {
+                    Notify.Push("A config named " + newName + " already exists");
+                    return false;
+                }
+            }
             DeleteProfile(profile.Name);
-            profile.Name = newName.Trim();
+            profile.Name = newName;
             SaveProfile(profile);
+            return true;
         }
 
         internal static void SetDefaultStartup(ConfigProfile target)
@@ -147,10 +162,18 @@ namespace PoppyMenu
                 Widgets.SectionBegin(null);
 
                 GUILayout.BeginHorizontal();
-                string updatedName = GUILayout.TextField(profile.Name ?? "", Theme.Search);
-                if (updatedName != profile.Name && !string.IsNullOrWhiteSpace(updatedName))
+                string key = profile.Name ?? "";
+                if (!_renameText.TryGetValue(key, out string text)) text = key;
+                text = GUILayout.TextField(text, Theme.Search);
+                _renameText[key] = text;
+                if (text != key && !string.IsNullOrWhiteSpace(text)
+                    && GUILayout.Button("Rename", Theme.Button, GUILayout.Width(70)))
                 {
-                    RenameProfile(profile, updatedName);
+                    if (RenameProfile(profile, text))
+                    {
+                        _renameText.Remove(key);
+                        Notify.Push("Renamed to " + profile.Name);
+                    }
                 }
 
                 if (GUILayout.Button("Load", Theme.Primary, GUILayout.Width(64)))
@@ -248,12 +271,37 @@ namespace PoppyMenu
         public float StatHpMult { get; set; }
         public bool GuaranteedShrineChance { get; set; }
 
+        // Added in 2.7.0. Nullable: missing in older presets, then left unchanged on load.
+        public int? AimSorting { get; set; }
+        public bool? AimHighlight { get; set; }
+        public bool? EspFilterChests { get; set; }
+        public bool? EspFilterShrines { get; set; }
+        public bool? EspFilterPrinters { get; set; }
+        public bool? EspFilterScrappers { get; set; }
+        public bool? EspFilterDrones { get; set; }
+        public bool? EspFilterBarrels { get; set; }
+        public bool? EspFilterOther { get; set; }
+        public bool? FovOverride { get; set; }
+        public float? FovValue { get; set; }
+        public float? FlightSpeed { get; set; }
+        public bool? SaleStarCheat { get; set; }
+        public int? SaleStarDropCount { get; set; }
+        public int? GiveCount { get; set; }
+        public bool? InfiniteShrineChance { get; set; }
+        public bool? TeleporterInstaCharge { get; set; }
+        public bool? NoEnemies { get; set; }
+        public bool? LockExp { get; set; }
+        public bool? PreventProfileWriting { get; set; }
+        public bool? RailgunnerInstaCharge { get; set; }
+        public bool? RailgunnerNoUltCooldown { get; set; }
+        public bool? RailgunnerUltSpam { get; set; }
+
         public static ConfigProfile CaptureCurrent(string name)
         {
             return new ConfigProfile
             {
                 Name = name,
-                AimActive = Aim.Enabled || Aim.Active,
+                AimActive = Aim.Enabled,
                 AimTargetWeakPoints = Aim.TargetWeakPoints,
                 AimNoSpread = Aim.NoSpread,
                 AimNoRecoil = Aim.NoRecoil,
@@ -301,7 +349,31 @@ namespace PoppyMenu
                 StatCritBonus = StatsModule.CritBonus,
                 StatHpOn = StatsModule.MaxHealthOn,
                 StatHpMult = StatsModule.MaxHealthMult,
-                GuaranteedShrineChance = WorldModule.GuaranteedShrineChance
+                GuaranteedShrineChance = WorldModule.GuaranteedShrineChance,
+
+                AimSorting = Aim.Sorting,
+                AimHighlight = Aim.Highlight,
+                EspFilterChests = RenderModule.EspFilterChests,
+                EspFilterShrines = RenderModule.EspFilterShrines,
+                EspFilterPrinters = RenderModule.EspFilterPrinters,
+                EspFilterScrappers = RenderModule.EspFilterScrappers,
+                EspFilterDrones = RenderModule.EspFilterDrones,
+                EspFilterBarrels = RenderModule.EspFilterBarrels,
+                EspFilterOther = RenderModule.EspFilterOther,
+                FovOverride = RenderModule.FovOverride,
+                FovValue = RenderModule.FovValue,
+                FlightSpeed = ModConfig.FlightSpeed.Value,
+                SaleStarCheat = ItemsModule.SaleStarCheat,
+                SaleStarDropCount = ItemsModule.SaleStarDropCount,
+                GiveCount = ItemsModule.GiveCount,
+                InfiniteShrineChance = WorldModule.InfiniteShrineChance,
+                TeleporterInstaCharge = TeleporterModule.InstaCharge,
+                NoEnemies = Safety.NoEnemies,
+                LockExp = Safety.LockExp,
+                PreventProfileWriting = Safety.PreventProfileWriting,
+                RailgunnerInstaCharge = FunModule.RailgunnerInstaCharge,
+                RailgunnerNoUltCooldown = FunModule.RailgunnerNoUltCooldown,
+                RailgunnerUltSpam = FunModule.RailgunnerUltSpam
             };
         }
 
@@ -357,6 +429,30 @@ namespace PoppyMenu
             StatsModule.MaxHealthOn = StatHpOn;
             StatsModule.MaxHealthMult = StatHpMult;
             WorldModule.GuaranteedShrineChance = GuaranteedShrineChance;
+
+            if (AimSorting.HasValue) Aim.Sorting = AimSorting.Value;
+            if (AimHighlight.HasValue) Aim.Highlight = AimHighlight.Value;
+            if (EspFilterChests.HasValue) RenderModule.EspFilterChests = EspFilterChests.Value;
+            if (EspFilterShrines.HasValue) RenderModule.EspFilterShrines = EspFilterShrines.Value;
+            if (EspFilterPrinters.HasValue) RenderModule.EspFilterPrinters = EspFilterPrinters.Value;
+            if (EspFilterScrappers.HasValue) RenderModule.EspFilterScrappers = EspFilterScrappers.Value;
+            if (EspFilterDrones.HasValue) RenderModule.EspFilterDrones = EspFilterDrones.Value;
+            if (EspFilterBarrels.HasValue) RenderModule.EspFilterBarrels = EspFilterBarrels.Value;
+            if (EspFilterOther.HasValue) RenderModule.EspFilterOther = EspFilterOther.Value;
+            if (FovOverride.HasValue) RenderModule.FovOverride = FovOverride.Value;
+            if (FovValue.HasValue) RenderModule.FovValue = FovValue.Value;
+            if (FlightSpeed.HasValue) ModConfig.FlightSpeed.Value = FlightSpeed.Value;
+            if (SaleStarCheat.HasValue) ItemsModule.SaleStarCheat = SaleStarCheat.Value;
+            if (SaleStarDropCount.HasValue) ItemsModule.SaleStarDropCount = SaleStarDropCount.Value;
+            if (GiveCount.HasValue) ItemsModule.GiveCount = GiveCount.Value;
+            if (InfiniteShrineChance.HasValue) WorldModule.InfiniteShrineChance = InfiniteShrineChance.Value;
+            if (TeleporterInstaCharge.HasValue) TeleporterModule.InstaCharge = TeleporterInstaCharge.Value;
+            if (NoEnemies.HasValue) Safety.NoEnemies = NoEnemies.Value;
+            if (LockExp.HasValue) Safety.LockExp = LockExp.Value;
+            if (PreventProfileWriting.HasValue) Safety.PreventProfileWriting = PreventProfileWriting.Value;
+            if (RailgunnerInstaCharge.HasValue) FunModule.RailgunnerInstaCharge = RailgunnerInstaCharge.Value;
+            if (RailgunnerNoUltCooldown.HasValue) FunModule.RailgunnerNoUltCooldown = RailgunnerNoUltCooldown.Value;
+            if (RailgunnerUltSpam.HasValue) FunModule.RailgunnerUltSpam = RailgunnerUltSpam.Value;
 
             ModConfig.Save();
         }

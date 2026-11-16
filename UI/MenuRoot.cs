@@ -58,15 +58,21 @@ namespace PoppyMenu
             }
         }
 
+        private static GUIStyle _tooltipStyle, _centerRichHint, _richHint;
+
         private static void DrawTooltip()
         {
             float scale = Mathf.Max(0.1f, ModConfig.UiScale.Value);
-            GUIStyle style = new GUIStyle(Theme.Hint);
-            style.wordWrap = true;
-            style.padding = new RectOffset(8, 8, 6, 6);
-            style.normal.background = Theme.RoundedRect(24, 24, 8, new Color(0.12f, 0.12f, 0.14f, 1f));
-            style.border = new RectOffset(8, 8, 8, 8);
-            style.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
+            if (_tooltipStyle == null)
+            {
+                _tooltipStyle = new GUIStyle(Theme.Hint);
+                _tooltipStyle.wordWrap = true;
+                _tooltipStyle.padding = new RectOffset(8, 8, 6, 6);
+                _tooltipStyle.normal.background = Theme.RoundedRect(24, 24, 8, new Color(0.12f, 0.12f, 0.14f, 1f));
+                _tooltipStyle.border = new RectOffset(8, 8, 8, 8);
+                _tooltipStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
+            }
+            GUIStyle style = _tooltipStyle;
 
             float w = 260f;
             float h = style.CalcHeight(new GUIContent(Widgets.CurrentTooltip), w);
@@ -276,7 +282,7 @@ namespace PoppyMenu
 
             if (!PlayerContext.InGame)
                 GUILayout.Label("<color=#" + Theme.Hex(Theme.TextDim) + ">Start a run to use most features.</color>",
-                    new GUIStyle(Theme.Hint) { richText = true, alignment = TextAnchor.MiddleCenter });
+                    _centerRichHint ?? (_centerRichHint = new GUIStyle(Theme.Hint) { richText = true, alignment = TextAnchor.MiddleCenter }));
 
             TabGroup group = _groups[ActiveTab];
             group.Page = Mathf.Clamp(group.Page, 0, group.Pages.Count - 1);
@@ -329,7 +335,7 @@ namespace PoppyMenu
             string status = n > 0
                 ? $"<color=#{Theme.Hex(Theme.On)}>\u25CF {n} active</color>"
                 : "<color=#555562>\u25CB idle</color>";
-            GUILayout.Label(status, new GUIStyle(Theme.Hint) { richText = true }, GUILayout.Width(100));
+            GUILayout.Label(status, _richHint ?? (_richHint = new GUIStyle(Theme.Hint) { richText = true }), GUILayout.Width(100));
 
             GUILayout.FlexibleSpace();
             GUILayout.Label($"[{ModConfig.ToggleMenuKey.Value}] toggle  \u00B7  drag header to move", _footerHint);

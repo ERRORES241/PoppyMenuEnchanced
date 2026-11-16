@@ -38,13 +38,6 @@ namespace PoppyMenu
             { Index = index; Name = name; IsDebuff = isDebuff; }
         }
 
-        internal readonly struct BodyEntry
-        {
-            internal readonly GameObject Prefab;
-            internal readonly string Name;
-            internal BodyEntry(GameObject prefab, string name) { Prefab = prefab; Name = name; }
-        }
-
         internal readonly struct SurvivorEntry
         {
             internal readonly SurvivorDef Def;
@@ -64,7 +57,6 @@ namespace PoppyMenu
         internal static readonly List<ItemEntry> Items = new List<ItemEntry>();
         internal static readonly List<EquipEntry> Equipment = new List<EquipEntry>();
         internal static readonly List<BuffEntry> Buffs = new List<BuffEntry>();
-        internal static readonly List<BodyEntry> Bodies = new List<BodyEntry>();
         internal static readonly List<SurvivorEntry> Survivors = new List<SurvivorEntry>();
         internal static readonly List<SpawnEntry> SpawnCards = new List<SpawnEntry>();
 
@@ -75,12 +67,11 @@ namespace PoppyMenu
             BuildItems();
             BuildEquipment();
             BuildBuffs();
-            BuildBodies();
             BuildSurvivors();
             BuildSpawnCards();
             Ready = true;
             Log.Info($"Catalogs: {Items.Count} items, {Equipment.Count} equipment, {Buffs.Count} buffs, " +
-                     $"{Bodies.Count} bodies, {Survivors.Count} survivors, {SpawnCards.Count} spawn cards.");
+                     $"{Survivors.Count} survivors, {SpawnCards.Count} spawn cards.");
         }
 
         private static string Loc(string token) => string.IsNullOrEmpty(token) ? token : Language.GetString(token);
@@ -198,26 +189,6 @@ namespace PoppyMenu
                 Buffs.Add(new BuffEntry(def.buffIndex, def.name, def.isDebuff));
             }
             Buffs.Sort((a, b) => string.Compare(a.Name, b.Name, System.StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static void BuildBodies()
-        {
-            Bodies.Clear();
-            foreach (GameObject prefab in BodyCatalog.allBodyPrefabs)
-            {
-                if (prefab == null)
-                    continue;
-                string name = prefab.name;
-                CharacterBody body = prefab.GetComponent<CharacterBody>();
-                if (body != null)
-                {
-                    string loc = Sanitize(Loc(body.baseNameToken));
-                    if (!string.IsNullOrWhiteSpace(loc))
-                        name = loc;
-                }
-                Bodies.Add(new BodyEntry(prefab, name));
-            }
-            Bodies.Sort((a, b) => string.Compare(a.Name, b.Name, System.StringComparison.OrdinalIgnoreCase));
         }
 
         private static void BuildSurvivors()

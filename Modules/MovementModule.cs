@@ -21,9 +21,14 @@ namespace PoppyMenu
         internal static void ToggleTeleportToPing() => TeleportToPing = !TeleportToPing;
 
         private bool _gravityOff;
+        private CharacterMotor _gravityMotor;
         private bool _collisionsDisabled;
         private KinematicCharacterMotor _kcm;
         private CharacterBody _lastBody;
+
+        // Jump held while flying. The jump input is cleared so flying up does not spend jumps.
+        private static bool _ascend;
+        private static bool Flying => Flight || NoClip;
 
         internal override void Tick()
         {
@@ -46,21 +51,21 @@ namespace PoppyMenu
                 _collisionsDisabled = NoClip;
             }
 
-            bool flying = Flight || NoClip;
+            bool flying = Flying;
             if (flying && motor != null)
             {
+                _gravityMotor = motor;
                 motor.useGravity = false;
                 motor.disableAirControlUntilCollision = false;
                 _gravityOff = true;
 
                 Vector3 move = Vector3.zero;
-                Camera cam = Camera.main;
-                if (cam != null && !InputCapture.Active)
+                if (!InputCapture.Active && body.inputBank != null)
                 {
-                    Vector3 fwd = cam.transform.forward; fwd.y = 0f; fwd.Normalize();
-                    Vector3 right = cam.transform.right; right.y = 0f; right.Normalize();
-                    move = fwd * Input.GetAxisRaw("Vertical") + right * Input.GetAxisRaw("Horizontal");
-                    if (Input.GetKey(KeyCode.Space)) move.y += 1f;
+                    // moveVector is the game's camera-relative movement input: follows rebinds and gamepads.
+                    move = body.inputBank.moveVector;
+                    move.y = 0f;
+                    if (_ascend) move.y += 1f;
                     if (Input.GetKey(KeyCode.LeftControl)) move.y -= 1f;
                 }
 
@@ -74,9 +79,10 @@ namespace PoppyMenu
                     motor.velocity = Vector3.Lerp(motor.velocity, Vector3.zero, 12f * Time.deltaTime);
                 }
             }
-            else if (motor != null && _gravityOff)
+            else if (_gravityOff)
             {
-                motor.useGravity = true;
+                RestoreGravity();
+                _gravityMotor = null;
                 _gravityOff = false;
             }
 
@@ -209,6 +215,14 @@ namespace PoppyMenu
         {
             orig(self);
 
+            if (Flying && self.hasEffectiveAuthority && self.body != null && self.body == PlayerContext.Body && self.bodyInputs != null)
+            {
+                _ascend = self.bodyInputs.jump.down;
+                self.bodyInputs.jump.PushState(false);
+                return;
+            }
+            _ascend = false;
+
             if (Bhop && self.hasEffectiveAuthority && self.body != null && !InputCapture.Active)
             {
                 CharacterMotor motor = self.body.characterMotor;
@@ -224,6 +238,13 @@ namespace PoppyMenu
             }
         }
 
+        // The game derives gravity from gravityParameters (skills like hovering change them).
+        // Ask it for the current value instead of forcing gravity on.
+        private void RestoreGravity()
+        {
+            if (_gravityMotor != null) _gravityMotor.useGravity = _gravityMotor.gravityParameters.CheckShouldUseGravity();
+        }
+
         private void SetCollisions(bool on)
         {
             if (_kcm == null) return;
@@ -235,7 +256,7 @@ namespace PoppyMenu
         internal override void OnUnload()
         {
             if (_kcm != null && _collisionsDisabled) SetCollisions(true);
-            if (PlayerContext.Motor != null && _gravityOff) PlayerContext.Motor.useGravity = true;
+            if (_gravityOff) RestoreGravity();
         }
 
         internal override void DrawMenu()
@@ -247,7 +268,7 @@ namespace PoppyMenu
             JumpPack = Widgets.Toggle("Jump Pack", JumpPack);
             Bhop = Widgets.Toggle("BunnyHop (Auto-jump on land)", Bhop);
             ModConfig.FlightSpeed.Value = Widgets.Slider("Fly Speed", ModConfig.FlightSpeed.Value, 5f, 150f);
-            Widgets.Hint("Fly: WASD move, Space up, Left Ctrl down. You can still aim and fire while flying.");
+            Widgets.Hint("Fly: move keys, Jump up, Left Ctrl down. You can still aim and fire while flying.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Teleportation");

@@ -1,6 +1,8 @@
 using System;
 using HarmonyLib;
 using RoR2;
+using UnityEngine;
+using UnityEngine.Networking;
 
 namespace PoppyMenu
 {
@@ -34,11 +36,29 @@ namespace PoppyMenu
                 return;
             _harmony = new Harmony("poppy.stats");
             var orig = AccessTools.Method(typeof(CharacterBody), nameof(CharacterBody.RecalculateStats));
+            var pre = AccessTools.Method(typeof(StatsModule), nameof(RecalcPrefix));
             var post = AccessTools.Method(typeof(StatsModule), nameof(RecalcPostfix));
-            _harmony.Patch(orig, postfix: new HarmonyMethod(post));
+            _harmony.Patch(orig, prefix: new HarmonyMethod(pre), postfix: new HarmonyMethod(post));
         }
 
-        private static void RecalcPostfix(CharacterBody __instance)
+        private struct HealthState
+        {
+            internal bool Valid;
+            internal float OldMax;
+            internal float Health;
+        }
+
+        // RecalculateStats adjusts current health to the change between the old and the new max health.
+        // With the multiplier, the old max is already multiplied and the new one is not yet, so the game
+        // clamps health down on every recalculation. Remember the state here and redo that step in the postfix.
+        private static void RecalcPrefix(CharacterBody __instance, out HealthState __state)
+        {
+            __state = default;
+            if (!MaxHealthOn || __instance == null || __instance != PlayerContext.Body || __instance.healthComponent == null) return;
+            __state = new HealthState { Valid = true, OldMax = __instance.maxHealth, Health = __instance.healthComponent.health };
+        }
+
+        private static void RecalcPostfix(CharacterBody __instance, HealthState __state)
         {
             if (__instance == null || __instance != PlayerContext.Body)
                 return;
@@ -47,7 +67,26 @@ namespace PoppyMenu
             if (MoveSpeedOn) __instance.moveSpeed *= MoveSpeedMult;
             if (ArmorOn) __instance.armor += ArmorBonus;
             if (CritOn) __instance.crit += CritBonus;
-            if (MaxHealthOn) __instance.maxHealth *= MaxHealthMult;
+            if (MaxHealthOn) ApplyMaxHealth(__instance, __state);
+        }
+
+        private static void ApplyMaxHealth(CharacterBody body, HealthState state)
+        {
+            float baseMax = body.maxHealth;
+            float newMax = baseMax * MaxHealthMult;
+            float delta = newMax - baseMax;
+            body.maxHealth = newMax;
+            body.maxBarrier += delta;
+            body.maxHull += delta;
+
+            HealthComponent hc = body.healthComponent;
+            if (!state.Valid || hc == null || !NetworkServer.active) return;
+
+            // Undo the game's adjustment and apply it again against the multiplied max.
+            hc.Networkhealth = state.Health;
+            float change = newMax - state.OldMax;
+            if (change > 0f) hc.Heal(change, default(ProcChainMask), false);
+            else if (hc.health > newMax) hc.Networkhealth = Mathf.Max(hc.health + change, newMax);
         }
 
         private static float _prevDmg, _prevAtk, _prevMove, _prevArmor, _prevCrit, _prevHp;

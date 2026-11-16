@@ -22,6 +22,27 @@
 - Instant Charge also fills Void Fields cells, Void Locus signals and moon pillars, and no longer sends a request every frame while the teleporter is idle.
 - Semi-Godmode survives void implosions and damage boosted after armor.
 - Teleporter ESP is now Teleporter & Portals: it also marks every portal (shop, gold, celestial, void, Colossus, Solus, Trial, ChampRush and others). The Other filter adds DLC3 power vaults, the Solus Heart offering and Access Codes nodes.
+- Settings are now saved when the menu closes and when the game quits. Before, the config file was only written when a preset was loaded, so most toggles were lost on restart.
+- The config and presets now also keep the ESP category filters, aimbot priority and target highlight, Give count, Infinite Shrine of Chance, Instant Charge, No Enemies, Lock Experience, Prevent Profile Saving and the Railgunner Fun toggles. Presets additionally keep the FOV changer, fly speed and Sale Star settings. Presets saved by older versions load without resetting these.
+- Saving the config writes the file once instead of once per setting, and sliders no longer write it on every frame while dragged.
+- Macro and Home steps store item, equipment and buff names instead of catalog indexes, which shift when the game or mods add content. Steps saved before keep working through the old index.
+- Macros have a stable id: renaming a macro no longer breaks its keybind, Home shortcut or calls from other macros. Existing references are migrated on load. A macro file with missing steps or names no longer breaks the Macros tab.
+- Renaming a preset happens on the Rename button and refuses a name that is already taken. Before, every keystroke renamed the file and could overwrite another preset.
+- Instant Ult Charge alone no longer refills the Railgunner ult; only No Ult Cooldown and Ult Spam do.
+- Keybinds and the menu key no longer fire while typing in chat or the console. Rebinding the menu key no longer closes the menu right away.
+- Max Health multiplier no longer drains health on every stat recalculation; barrier and hull follow the new max.
+- Flight follows the game's movement bindings and gamepad, flies up on Jump without spending jumps, and hands gravity back to the game when turned off instead of forcing it on.
+- Remove All Buffs leaves hidden internal buffs alone.
+- Disable everything now also turns off BunnyHop, teleport on ping, Semi-Godmode, No Enemies, Lock Experience, No Spread, No Recoil, the Railgunner Fun toggles, Instant Charge, Infinite Shrine of Chance, Sale Star and the FOV changer.
+- Zoom items gives the items by definition, so it works in any game language.
+- Spawn all portals spawns every destination portal around you right away (shop, gold, celestial, void, deep void, Colossus, Prime Meridian, Solus shop, Eye, Access Codes, Trial, ChampRush), loading the spawn cards on demand.
+- Go to scene lists only stages and intermissions; menus and cutscenes that broke the run are gone.
+- Spawn ignores trigger volumes and your own body when picking the spawn point. Macro spawn steps store the exact spawn card and can spawn allies.
+- ESP refreshes buttons and cleansing pools on every new stage, including a new run on the same first stage. A failing ESP section no longer hides the others.
+- Removed the unused character change (Character module, body change operation and macro step).
+- Less garbage per frame: picker lists are built when opened, menu styles and the tooltip texture are cached, Magic Bullet reuses its collider buffer, ESP filters no longer lowercase names.
+- ESP labels support the Quality mod: the quality icon tag in item names is shown as (Uncommon), (Rare), (Epic) or (Legendary) instead of raw markup, and other text markup is removed.
+- Aimbot config defaults now match the code (60 degree cone, 300 m range).
 - Spawn picks the exact spawn card instead of the first one with the same name (snowy and sandy shrine variants, void chests).
 
 ## 2.6.0

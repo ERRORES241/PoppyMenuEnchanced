@@ -20,16 +20,8 @@ namespace PoppyMenu
             Widgets.Button("Give Item...", () =>
                 ItemPicker.Open("Items", idx => NetUtil.Do(PoppyOp.GiveItem, (int)idx, GiveCount)));
 
-            var equipRows = new List<ListPicker.Row>(Catalogs.Equipment.Count);
-            foreach (var entry in Catalogs.Equipment)
-            {
-                var e = entry;
-                equipRows.Add(new ListPicker.Row(
-                    e.Name, e.Color,
-                    () => NetUtil.Do(PoppyOp.GiveEquipment, (int)e.Index)));
-            }
-            Widgets.PickerButton("Give Equipment...", "Equipment", equipRows);
-            Widgets.PickerButton("Give Key Item...", "Key Items", KeyItemRows());
+            Widgets.PickerButton("Give Equipment...", "Equipment", EquipRows);
+            Widgets.PickerButton("Give Key Item...", "Key Items", KeyItemRows);
             Widgets.Button($"Give All Items (x{GiveCount})", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: GiveCount));
             Widgets.SectionEnd();
 
@@ -48,6 +40,17 @@ namespace PoppyMenu
                 SaleStarDropCount = Widgets.IntStepper("Drop Count", SaleStarDropCount, 1, 2, 5);
             }
             Widgets.SectionEnd();
+        }
+
+        private static List<ListPicker.Row> EquipRows()
+        {
+            var rows = new List<ListPicker.Row>(Catalogs.Equipment.Count);
+            foreach (var entry in Catalogs.Equipment)
+            {
+                var e = entry;
+                rows.Add(new ListPicker.Row(e.Name, e.Color, () => NetUtil.Do(PoppyOp.GiveEquipment, (int)e.Index)));
+            }
+            return rows;
         }
 
         private static readonly UnityEngine.Color KeyItemColor = new UnityEngine.Color(0.85f, 0.65f, 1f);

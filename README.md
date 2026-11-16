@@ -20,6 +20,7 @@ Organized into clean top-level tabs and focused sub-pages.
 - **Shrine & Pricing Accuracy:** Correct price formatting for shrines (Mountain Shrines, Shrine of Chance, Cleansing Pools) that do not require money, omitting misleading costs.
 - **Void Potentials & Cradles:** Distinct purple markers for Void Potentials (OptionPickup) and Void Cradles.
 - **DLC Objects:** Markers for the DLC2 Wok and Aurelionite Heart, the DLC3 Drone Scrapper, Drone Assembly Station, Power Pedestal, power vaults, Solus Heart and Access Codes nodes, and the DLC4 Wake, Wake offerings and stops, Trial Gong, Hex and Drain altars. Costs in souls, wake flowers, hexes and items use the game's own wording.
+- **Quality mod support:** Item names from Gorakh's Quality mod show their quality tier in ESP labels.
 - **Dynamic Localization:** ESP labels use native game language tokens (Russian, English, etc.).
 - **Active Effects HUD:** Draggable on-screen HUD displaying currently active toggles (God Mode, Aimbot, Sprint, etc.) with automatic pixel-accurate height scaling.
 

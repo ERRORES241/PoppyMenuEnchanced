@@ -45,7 +45,7 @@ namespace PoppyMenu
 
         internal static void Poll()
         {
-            if (Rebind.IsActive || MenuRoot.Visible || ListPicker.IsOpen) return;
+            if (Rebind.IsActive || MenuRoot.Visible || ListPicker.IsOpen || InputCapture.IsTypingInGame()) return;
             for (int i = 0; i < Binds.Count; i++)
             {
                 Bind b = Binds[i];

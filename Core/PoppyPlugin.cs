@@ -27,6 +27,7 @@ namespace PoppyMenu
             BindStore.Load();
             MacroStore.Load();
             HomeLayoutStore.Load();
+            MacroStore.MigrateReferences();
 
             var go = new GameObject("PoppyMenu");
             DontDestroyOnLoad(go);
