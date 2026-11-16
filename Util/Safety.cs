@@ -55,6 +55,9 @@ namespace PoppyMenu
             if (__instance.body == null || !IsLocalPlayer(__instance.body)) return;
             float survivable = Mathf.Max(0f, __instance.combinedHealth - 1f);
             if (damageInfo.damage > survivable) damageInfo.damage = survivable;
+            // Armor and damage multipliers apply after this prefix, and void implosions (DLC1) kill outright.
+            damageInfo.damageType.damageType |= DamageType.NonLethal;
+            damageInfo.damageType.damageType &= ~DamageType.VoidDeath;
         }
 
         private static bool LockExpPrefix() => !LockExp;

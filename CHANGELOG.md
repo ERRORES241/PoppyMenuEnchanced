@@ -16,6 +16,13 @@
 - FOV Changer restores the default FOV when turned off.
 - God Mode no longer overrides the game's god state every frame.
 - Saved configs are cached instead of being read from disk every frame.
+- ESP shows the DLC2 Wok and Aurelionite Heart and the DLC3 Drone Scrapper, Drone Assembly Station and Power Pedestal. Scrapper, drone and other filters now also apply to void potentials, geodes and the Drone Combiner.
+- 100% Shrine of Chance lets the game roll the drop, so Chance Doll jackpots and their effects work again.
+- Give All Items skips void items (they converted every regular item) and objective items. Stack and Reroll follow the game's Shrine of Order rules and leave hidden, objective and power shape items alone.
+- Instant Charge also fills Void Fields cells, Void Locus signals and moon pillars, and no longer sends a request every frame while the teleporter is idle.
+- Semi-Godmode survives void implosions and damage boosted after armor.
+- Teleporter ESP is now Teleporter & Portals: it also marks every portal (shop, gold, celestial, void, Colossus, Solus, Trial, ChampRush and others). The Other filter adds DLC3 power vaults, the Solus Heart offering and Access Codes nodes.
+- Spawn picks the exact spawn card instead of the first one with the same name (snowy and sandy shrine variants, void chests).
 
 ## 2.6.0
 - Added Teleport to Ping (auto-teleport on ping, teleport to active ping, and teleport to cursor).

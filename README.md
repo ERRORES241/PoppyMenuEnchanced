@@ -15,11 +15,11 @@ Organized into clean top-level tabs and focused sub-pages.
 - **Customization:** Target priority (crosshair, distance, low HP, high HP), prioritize bosses, line-of-sight check, FOV/range limits, homing projectiles, magic bullet (penetrate walls), and smooth continuous FOV overlay circle.
 
 ### Visuals
-- ESP for enemies, interactables, and teleporters through walls.
+- ESP for enemies, interactables, teleporters and portals through walls.
 - **Category Filters:** Toggle ESP rendering independently for Chests/Multishops, Shrines, Drones/Turrets, Printers, Scrappers, Barrels, and Other interactables.
 - **Shrine & Pricing Accuracy:** Correct price formatting for shrines (Mountain Shrines, Shrine of Chance, Cleansing Pools) that do not require money, omitting misleading costs.
 - **Void Potentials & Cradles:** Distinct purple markers for Void Potentials (OptionPickup) and Void Cradles.
-- **DLC4 Objects:** Markers for the Wake, Wake offerings and stops, Trial Gong, Hex and Drain altars. Costs in souls, wake flowers, hexes and items use the game's own wording.
+- **DLC Objects:** Markers for the DLC2 Wok and Aurelionite Heart, the DLC3 Drone Scrapper, Drone Assembly Station, Power Pedestal, power vaults, Solus Heart and Access Codes nodes, and the DLC4 Wake, Wake offerings and stops, Trial Gong, Hex and Drain altars. Costs in souls, wake flowers, hexes and items use the game's own wording.
 - **Dynamic Localization:** ESP labels use native game language tokens (Russian, English, etc.).
 - **Active Effects HUD:** Draggable on-screen HUD displaying currently active toggles (God Mode, Aimbot, Sprint, etc.) with automatic pixel-accurate height scaling.
 
@@ -45,7 +45,7 @@ Stage, run, and server management across sub-pages:
 - **Shrines:** **100% Shrine of Chance Win Rate** (guarantees an item drop on every roll without empty failures) and **Infinite Shrine of Chance Uses** (prevents shrines from closing after max purchases).
 - **Spawn:** Spawn monsters or interactables at crosshairs with team and count parameters. Cleaned catalog names without raw asset tags.
 - **Run:** Set stage clear count, run time, team level, toggle active artifacts, and stage skip.
-- **Teleporter:** Instant teleporter charge toggle, stage skip, and Mountain Shrine stack adder.
+- **Teleporter:** Instant charge toggle (teleporter, Void Fields cells, Void Locus signals, moon pillars), stage skip, and Mountain Shrine stack adder.
 - **Players:** Lobby player controls (heal, revive, hurt, kill, teleport, team change, item grant, kick/ban).
 
 ### Fun

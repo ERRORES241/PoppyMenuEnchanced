@@ -76,7 +76,7 @@ namespace PoppyMenu
                 case PoppyOp.ChangeBody: return "Became " + (s1 ?? "body");
                 case PoppyOp.KillAllEnemies: return "Killed all enemies";
                 case PoppyOp.Spawn: return "Spawned " + (s1 ?? "object");
-                case PoppyOp.ChargeTeleporter: return "Teleporter charged";
+                case PoppyOp.ChargeTeleporter: return "Charge zone filled";
                 case PoppyOp.SkipStage: return "Skipping stage";
                 case PoppyOp.AddMountainShrine: return "Mountain shrine added";
                 case PoppyOp.SpawnShopPortal: return "Shop portal spawned";
@@ -153,7 +153,7 @@ namespace PoppyMenu
                 foreach (Catalogs.ItemEntry v in variants)
                 {
                     ItemDef def = ItemCatalog.GetItemDef(v.Index);
-                    if (def == null || def.hidden || def.tier == ItemTier.Lunar || def.ContainsTag(ItemTag.WorldUnique)) continue;
+                    if (def == null || def.hidden || def.tier == ItemTier.Lunar || def.ContainsTag(ItemTag.WorldUnique) || IsObjectiveOrShape(def)) continue;
                     if (!found || IsBetterVariant(v, best)) { best = v; found = true; }
                 }
                 if (found) inv.GiveItem(best.Index, Mathf.Max(1, count));
@@ -165,21 +165,29 @@ namespace PoppyMenu
             foreach (Catalogs.ItemEntry v in variants)
             {
                 ItemDef def = ItemCatalog.GetItemDef(v.Index);
-                if (def == null || def.hidden || def.ContainsTag(ItemTag.WorldUnique)) continue;
+                if (def == null || def.hidden || def.ContainsTag(ItemTag.WorldUnique) || IsObjectiveOrShape(def)) continue;
+                // Void items are left out: they would corrupt every regular item they replace.
                 switch (def.tier)
                 {
                     case ItemTier.Tier1:
                     case ItemTier.Tier2:
                     case ItemTier.Tier3:
                     case ItemTier.Boss:
-                    case ItemTier.VoidTier1:
-                    case ItemTier.VoidTier2:
-                    case ItemTier.VoidTier3:
-                    case ItemTier.VoidBoss:
                         return true;
                 }
             }
             return false;
+        }
+
+        private static bool IsObjectiveOrShape(ItemDef def) =>
+            def.ContainsTag(ItemTag.ObjectiveRelated) || def.ContainsTag(ItemTag.PowerShape);
+
+        // Same rule as the game's Shrine of Order: restackable tiers only, no hidden, objective or power shape items.
+        private static bool IsRestackable(ItemDef def)
+        {
+            if (def == null || def.hidden || IsObjectiveOrShape(def)) return false;
+            ItemTierDef tierDef = ItemTierCatalog.GetItemTierDef(def.tier);
+            return tierDef != null && tierDef.canRestack;
         }
 
         private static bool IsBetterVariant(Catalogs.ItemEntry a, Catalogs.ItemEntry b)
@@ -422,7 +430,7 @@ namespace PoppyMenu
             foreach (ItemIndex idx in new List<ItemIndex>(inv.itemAcquisitionOrder))
             {
                 ItemDef def = ItemCatalog.GetItemDef(idx);
-                if (def == null) continue;
+                if (!IsRestackable(def) || inv.GetItemCountPermanent(idx) <= 0) continue;
                 if (!byTier.TryGetValue(def.tier, out var list)) { list = new List<ItemIndex>(); byTier[def.tier] = list; }
                 list.Add(idx);
             }
@@ -450,13 +458,15 @@ namespace PoppyMenu
             var tierLists = new Dictionary<ItemTier, List<ItemIndex>>();
             foreach (var e in Catalogs.Items)
             {
+                ItemDef poolDef = ItemCatalog.GetItemDef(e.Index);
+                if (!IsRestackable(poolDef) || poolDef.ContainsTag(ItemTag.WorldUnique)) continue;
                 if (!tierLists.TryGetValue(e.Tier, out var list)) { list = new List<ItemIndex>(); tierLists[e.Tier] = list; }
                 list.Add(e.Index);
             }
             foreach (ItemIndex idx in new List<ItemIndex>(inv.itemAcquisitionOrder))
             {
                 ItemDef def = ItemCatalog.GetItemDef(idx);
-                if (def == null) continue;
+                if (!IsRestackable(def)) continue;
                 int count = inv.GetItemCountPermanent(idx);
                 if (count <= 0) continue;
                 if (!tierLists.TryGetValue(def.tier, out var pool) || pool.Count == 0) continue;
@@ -604,9 +614,13 @@ namespace PoppyMenu
 
         private static void ChargeTeleporter()
         {
-            TeleporterInteraction tp = TeleporterInteraction.instance;
-            if (tp != null && tp.holdoutZoneController != null)
-                tp.holdoutZoneController.FullyChargeHoldoutZone();
+            // Every active zone the players charge: teleporter, Void Fields cells, Void Locus signals, moon pillars, Simulacrum ward.
+            var zones = InstanceTracker.GetInstancesList<HoldoutZoneController>();
+            for (int i = zones.Count - 1; i >= 0; i--)
+            {
+                HoldoutZoneController z = zones[i];
+                if (z != null && z.chargingTeam == TeamIndex.Player && !z.isFullyCharged) z.FullyChargeHoldoutZone();
+            }
         }
 
         private static void SkipStage()

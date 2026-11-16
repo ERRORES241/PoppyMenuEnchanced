@@ -33,17 +33,19 @@ namespace PoppyMenu
             foreach (var entry in Catalogs.SpawnCards)
             {
                 string name = entry.Name;
+                // Look up by card name: DLC variants share display names (snowy/sandy shrines, void chests).
+                string card = entry.Card != null ? entry.Card.name : entry.Name;
                 if (entry.IsInteractable)
                     interactables.Add(new ListPicker.Row(name, Color.cyan, () =>
                     {
                         Vector3 pos = ComputePos();
-                        NetUtil.Do(PoppyOp.Spawn, i1: _count, i2: _ally ? (int)TeamIndex.Player : (int)TeamIndex.Monster, s1: name, f1: pos.x, f2: pos.y, f3: pos.z);
+                        NetUtil.Do(PoppyOp.Spawn, i1: _count, i2: _ally ? (int)TeamIndex.Player : (int)TeamIndex.Monster, s1: card, f1: pos.x, f2: pos.y, f3: pos.z);
                     }));
                 else
                     monsters.Add(new ListPicker.Row(name, Color.red, () =>
                     {
                         Vector3 pos = ComputePos();
-                        NetUtil.Do(PoppyOp.Spawn, i1: _count, i2: _ally ? (int)TeamIndex.Player : (int)TeamIndex.Monster, s1: name, f1: pos.x, f2: pos.y, f3: pos.z);
+                        NetUtil.Do(PoppyOp.Spawn, i1: _count, i2: _ally ? (int)TeamIndex.Player : (int)TeamIndex.Monster, s1: card, f1: pos.x, f2: pos.y, f3: pos.z);
                     }));
             }
 

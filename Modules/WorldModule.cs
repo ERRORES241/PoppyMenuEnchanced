@@ -21,14 +21,6 @@ namespace PoppyMenu
 
         private static readonly AccessTools.FieldRef<ShrineChanceBehavior, int> _successfulPurchaseCountRef =
             AccessTools.FieldRefAccess<ShrineChanceBehavior, int>("successfulPurchaseCount");
-        private static readonly AccessTools.FieldRef<ShrineChanceBehavior, bool> _waitingForRefreshRef =
-            AccessTools.FieldRefAccess<ShrineChanceBehavior, bool>("waitingForRefresh");
-        private static readonly AccessTools.FieldRef<ShrineChanceBehavior, float> _refreshTimerRef =
-            AccessTools.FieldRefAccess<ShrineChanceBehavior, float>("refreshTimer");
-        private static readonly AccessTools.FieldRef<ShrineChanceBehavior, bool> _chanceDollWinRef =
-            AccessTools.FieldRefAccess<ShrineChanceBehavior, bool>("chanceDollWin");
-        private static readonly AccessTools.FieldRef<ShrineChanceBehavior, Xoroshiro128Plus> _rngRef =
-            AccessTools.FieldRefAccess<ShrineChanceBehavior, Xoroshiro128Plus>("rng");
 
         internal static void Init()
         {
@@ -38,7 +30,9 @@ namespace PoppyMenu
                 var addStack = AccessTools.Method(typeof(ShrineChanceBehavior), nameof(ShrineChanceBehavior.AddShrineStack));
                 if (addStack != null)
                 {
-                    _harmony.Patch(addStack, prefix: new HarmonyMethod(typeof(WorldModule), nameof(AddShrineStack_Prefix)));
+                    _harmony.Patch(addStack,
+                        prefix: new HarmonyMethod(typeof(WorldModule), nameof(AddShrineStack_Prefix)),
+                        postfix: new HarmonyMethod(typeof(WorldModule), nameof(AddShrineStack_Postfix)));
                 }
             }
             catch (System.Exception e)
@@ -47,123 +41,33 @@ namespace PoppyMenu
             }
         }
 
-        private static bool AddShrineStack_Prefix(ShrineChanceBehavior __instance, Interactor activator)
+        private struct ShrineOdds
         {
-            if (__instance == null || !UnityEngine.Networking.NetworkServer.active)
-                return true;
+            internal bool Overridden;
+            internal float FailureChance;
+            internal float FailureWeight;
+        }
 
-            if (!GuaranteedShrineChance)
-            {
-                // Infinite uses without the guarantee: let the game roll, but never reach maxPurchaseCount.
-                if (InfiniteShrineChance) _successfulPurchaseCountRef(__instance) = 0;
-                return true;
-            }
+        // The game rolls the drop itself (Chance Doll jackpot, effects, chat, events); we only remove the failure odds.
+        private static void AddShrineStack_Prefix(ShrineChanceBehavior __instance, out ShrineOdds __state)
+        {
+            __state = default;
+            if (__instance == null || !UnityEngine.Networking.NetworkServer.active) return;
 
-            CharacterBody body = activator != null ? activator.GetComponent<CharacterBody>() : null;
-            if (body == null || body.inventory == null)
-                return true;
+            // Infinite uses: never let the success count reach maxPurchaseCount.
+            if (InfiniteShrineChance) _successfulPurchaseCountRef(__instance) = 0;
 
-            Xoroshiro128Plus rng = _rngRef(__instance);
-            if (rng == null)
-            {
-                ulong seed = Run.instance != null ? Run.instance.treasureRng.nextUlong : (ulong)Random.Range(1, 100000);
-                rng = new Xoroshiro128Plus(seed);
-                _rngRef(__instance) = rng;
-            }
+            if (!GuaranteedShrineChance) return;
+            __state = new ShrineOdds { Overridden = true, FailureChance = __instance.failureChance, FailureWeight = __instance.failureWeight };
+            __instance.failureChance = -1f; // drop table path: roll > failureChance always succeeds
+            __instance.failureWeight = 0f;  // legacy weighted path
+        }
 
-            UniquePickup pickup = UniquePickup.none;
-            bool chanceDollWin = false;
-
-            // 1. Try dropTable
-            if (__instance.dropTable != null)
-            {
-                try { pickup = __instance.dropTable.GeneratePickup(rng); } catch { }
-            }
-
-            // 2. Fallback to random available items if dropTable fails or returns invalid
-            if (!pickup.isValid)
-            {
-                System.Collections.Generic.List<PickupIndex> candidates = new System.Collections.Generic.List<PickupIndex>();
-                if (Run.instance != null)
-                {
-                    if (Run.instance.availableTier2DropList != null && Run.instance.availableTier2DropList.Count > 0)
-                        candidates.AddRange(Run.instance.availableTier2DropList);
-                    if (Run.instance.availableTier1DropList != null && Run.instance.availableTier1DropList.Count > 0)
-                        candidates.AddRange(Run.instance.availableTier1DropList);
-                    if (Run.instance.availableTier3DropList != null && Run.instance.availableTier3DropList.Count > 0)
-                        candidates.AddRange(Run.instance.availableTier3DropList);
-                }
-                if (candidates.Count > 0)
-                {
-                    PickupIndex chosen = rng.NextElementUniform<PickupIndex>(candidates);
-                    pickup = new UniquePickup(chosen);
-                }
-            }
-
-            // 3. Last fallback: any pickup in PickupCatalog
-            if (!pickup.isValid)
-            {
-                if (PickupCatalog.pickupCount > 0)
-                {
-                    PickupIndex fallback = new PickupIndex(rng.RangeInt(0, PickupCatalog.pickupCount));
-                    pickup = new UniquePickup(fallback);
-                }
-            }
-
-            _chanceDollWinRef(__instance) = chanceDollWin;
-
-            // 4. Update success count
-            int currentSuccess = _successfulPurchaseCountRef(__instance) + 1;
-            if (InfiniteShrineChance) currentSuccess = 0;
-            else _successfulPurchaseCountRef(__instance) = currentSuccess;
-
-            // 5. Create pickup droplet
-            if (__instance.dropletOrigin != null && pickup.isValid)
-            {
-                PickupDropletController.CreatePickupDroplet(pickup, __instance.dropletOrigin.position, __instance.dropletOrigin.forward * 20f);
-            }
-
-            // 6. Send broadcast chat
-            Chat.SubjectFormatChatMessage message = new Chat.SubjectFormatChatMessage
-            {
-                subjectAsCharacterBody = body,
-                baseToken = "SHRINE_CHANCE_SUCCESS_MESSAGE"
-            };
-            Chat.SendBroadcastChat(message);
-
-            // 7. Fire global event
-            try
-            {
-                var evtRef = AccessTools.StaticFieldRefAccess<System.Action<bool, Interactor>>(typeof(ShrineChanceBehavior), "onShrineChancePurchaseGlobal");
-                if (evtRef != null) evtRef(false, activator);
-            }
-            catch { }
-
-            // 8. Trigger refresh cooldown
-            _waitingForRefreshRef(__instance) = true;
-            _refreshTimerRef(__instance) = 2f;
-
-            // 9. Spawn reward VFX
-            if (__instance.effectPrefabShrineRewardNormal != null)
-            {
-                EffectManager.SpawnEffect(__instance.effectPrefabShrineRewardNormal, new EffectData
-                {
-                    origin = __instance.transform.position,
-                    rotation = Quaternion.identity,
-                    scale = 1f,
-                    color = (Color32)__instance.colorShrineRewardNormal
-                }, true);
-            }
-
-            // 10. Check max purchase limit
-            if (!InfiniteShrineChance && currentSuccess >= __instance.maxPurchaseCount)
-            {
-                if (__instance.symbolTransform != null && __instance.symbolTransform.gameObject != null)
-                    __instance.symbolTransform.gameObject.SetActive(false);
-                try { __instance.CallRpcSetPingable(false); } catch { }
-            }
-
-            return false;
+        private static void AddShrineStack_Postfix(ShrineChanceBehavior __instance, ShrineOdds __state)
+        {
+            if (!__state.Overridden || __instance == null) return;
+            __instance.failureChance = __state.FailureChance;
+            __instance.failureWeight = __state.FailureWeight;
         }
 
         internal override void Tick()

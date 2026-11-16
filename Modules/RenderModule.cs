@@ -102,7 +102,7 @@ namespace PoppyMenu
                 EspFilterBarrels = Widgets.Toggle("  Barrels", EspFilterBarrels);
                 EspFilterOther = Widgets.Toggle("  Other", EspFilterOther);
             }
-            EspTeleporter = Widgets.Toggle("Teleporter", EspTeleporter);
+            EspTeleporter = Widgets.Toggle("Teleporter & Portals", EspTeleporter);
             Widgets.Hint("Markers draw through walls while in a run.");
             Widgets.SectionEnd();
 
@@ -273,8 +273,8 @@ namespace PoppyMenu
                         }
                     }
 
-                    // 5b. DLC4 interactables that are not PurchaseInteractions (Wake, Trial Gong, Hex and Drain altars)
-                    if (EspFilterOther) DrawDlc4Interactables(cam, origin);
+                    // 5b. DLC2-4 interactables that are not PurchaseInteractions (Wok, Drone Scrapper, Wake, Hex altars...)
+                    DrawSpecialInteractables(cam, origin);
 
                     // 6. PickupPickerControllers (Scrappers, Void Potentials, Command Cubes)
                     var pickers = InstanceTracker.GetInstancesList<PickupPickerController>();
@@ -284,6 +284,8 @@ namespace PoppyMenu
                         {
                             PickupPickerController picker = pickers[i];
                             if (picker == null || !picker.available || picker.transform == null) continue;
+                            bool isScrapper = picker.gameObject.name.IndexOf("Scrapper", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                            if (isScrapper ? !EspFilterScrappers : !EspFilterOther) continue;
                             
                             // Skip if attached to GenericPickupController (some Command Cubes might have it, but usually they don't)
                             if (picker.GetComponent<GenericPickupController>() != null) continue;
@@ -362,7 +364,7 @@ namespace PoppyMenu
 
                     // 9. Geode / Void Seed
                     var geodes = InstanceTracker.GetInstancesList<GeodeController>();
-                    if (geodes != null)
+                    if (geodes != null && EspFilterOther)
                     {
                         for (int i = 0; i < geodes.Count; i++)
                         {
@@ -380,7 +382,7 @@ namespace PoppyMenu
 
                     // 10. Drone Combiner (Col. Droneman)
                     var combiners = InstanceTracker.GetInstancesList<DroneCombinerController>();
-                    if (combiners != null)
+                    if (combiners != null && EspFilterDrones)
                     {
                         for (int i = 0; i < combiners.Count; i++)
                         {
@@ -410,6 +412,8 @@ namespace PoppyMenu
                         }
                     }
                 }
+
+                DrawPortalsAndObjectives(cam, origin);
             }
             catch { }
         }
@@ -496,8 +500,9 @@ namespace PoppyMenu
         }
 
         private static readonly Color Dlc4Color = new Color(0.95f, 0.75f, 0.3f);
+        private static readonly Color SpecialColor = new Color(0.8f, 0.8f, 0.8f);
 
-        private void DrawDlc4Interactables(Camera cam, Vector3 origin)
+        private void DrawSpecialInteractables(Camera cam, Vector3 origin)
         {
             List<IInteractable> list = InterfaceInstanceTracker<IInteractable>.GetInstancesList();
             if (list == null) return;
@@ -508,8 +513,8 @@ namespace PoppyMenu
                 MonoBehaviour mb = list[i] as MonoBehaviour;
                 if (mb == null || mb.transform == null) continue;
 
-                string fallback = Dlc4FallbackName(mb);
-                if (fallback == null) continue; // not a DLC4 type; other passes cover the rest
+                string fallback = SpecialFallbackName(mb, out Color col, out bool shown);
+                if (fallback == null || !shown) continue; // other passes cover the rest
 
                 if (me != null)
                 {
@@ -528,12 +533,96 @@ namespace PoppyMenu
                     else name = _richTag.Replace(name, "");
                 }
                 string dStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
-                DrawMarker(cam, mb.transform.position, BuildMultiLine(name, "", dStr), Dlc4Color);
+                DrawMarker(cam, mb.transform.position, BuildMultiLine(name, "", dStr), col);
             }
         }
 
-        private static string Dlc4FallbackName(MonoBehaviour mb)
+        private static readonly Color PortalColor = new Color(0.35f, 0.8f, 1f);
+        private static readonly Color ObjectiveColor = new Color(0.6f, 0.9f, 0.5f);
+
+        // Whitelist only, taken from the game's prefabs: portals (all DLCs), DLC3 power vaults, Solus Heart offering
+        // and Access Codes nodes. Other GenericInteraction / ProxyInteraction users (moon elevators, dialer buttons,
+        // Captain beacons, pets) are left out on purpose.
+        private void DrawPortalsAndObjectives(Camera cam, Vector3 origin)
         {
+            bool objectives = EspInteractables && EspFilterOther;
+            if (!EspTeleporter && !objectives) return;
+
+            List<GenericInteraction> generic = InstanceTracker.GetInstancesList<GenericInteraction>();
+            for (int i = 0; i < generic.Count; i++)
+            {
+                GenericInteraction gi = generic[i];
+                if (gi == null || !gi.isActiveAndEnabled || gi.interactability == Interactability.Disabled) continue;
+
+                GenericDisplayNameProvider dn = gi.GetComponent<GenericDisplayNameProvider>();
+                string token = dn != null ? dn.displayToken : null;
+                string ctx = gi.contextToken;
+                bool portal = gi.GetComponent<SceneExitController>() != null
+                    || (token != null && (token.StartsWith("PORTAL_") || token.StartsWith("ACCESSCODES_PORTAL")));
+
+                string fallback;
+                Color col;
+                if (portal)
+                {
+                    if (!EspTeleporter) continue;
+                    fallback = "Portal"; col = PortalColor;
+                }
+                else if (ctx == "PEDESTAL_POWERCUBE_CONTEXT") { fallback = "Power Cube Vault"; col = ObjectiveColor; }
+                else if (ctx == "PEDESTAL_POWERORB_CONTEXT") { fallback = "Power Orb Vault"; col = ObjectiveColor; }
+                else if (ctx == "PEDESTAL_POWERPYRAMID_CONTEXT") { fallback = "Power Pyramid Vault"; col = ObjectiveColor; }
+                else if (ctx == "SOLUSHEART_OFFERING_ACCEPT") { fallback = "Solus Heart"; col = ObjectiveColor; }
+                else continue;
+                if (!portal && !objectives) continue;
+
+                DrawNamed(cam, origin, gi.transform, dn, fallback, col);
+            }
+
+            if (!objectives) return;
+            List<ProxyInteraction> proxies = InstanceTracker.GetInstancesList<ProxyInteraction>();
+            Interactor me = proxies.Count > 0 && PlayerContext.Body != null ? PlayerContext.Body.GetComponent<Interactor>() : null;
+            for (int i = 0; i < proxies.Count; i++)
+            {
+                ProxyInteraction px = proxies[i];
+                if (px == null || !px.isActiveAndEnabled || px.GetComponent<AccessCodesNodeController>() == null) continue;
+                if (me != null)
+                {
+                    Interactability state;
+                    try { state = px.GetInteractability(me); } catch { continue; }
+                    if (state == Interactability.Disabled) continue;
+                }
+                DrawNamed(cam, origin, px.transform, px.GetComponent<GenericDisplayNameProvider>(), "Access Codes Node", ObjectiveColor);
+            }
+        }
+
+        private void DrawNamed(Camera cam, Vector3 origin, Transform t, GenericDisplayNameProvider dn, string fallback, Color col)
+        {
+            if (t == null || Culled(origin, t.position, out float dist)) return;
+            string name = "";
+            if (ShowNames)
+            {
+                try { name = dn != null && !string.IsNullOrEmpty(dn.displayToken) ? dn.GetDisplayName() : null; } catch { name = null; }
+                if (string.IsNullOrEmpty(name) || name == dn?.displayToken) name = fallback;
+                else name = _richTag.Replace(name, "");
+            }
+            string dStr = ShowDistance ? $"{Mathf.RoundToInt(dist)}m" : "";
+            DrawMarker(cam, t.position, BuildMultiLine(name, "", dStr), col);
+        }
+
+        private static string SpecialFallbackName(MonoBehaviour mb, out Color col, out bool shown)
+        {
+            col = SpecialColor;
+            shown = EspFilterOther;
+            switch (mb)
+            {
+                // DLC2
+                case WokController _: return "Wok";
+                case AurelioniteHeartController _: return "Aurelionite Heart";
+                // DLC3
+                case DroneScrapperPickerController _: shown = EspFilterScrappers; return "Drone Scrapper";
+                case TieredPickupPickerController _: shown = EspFilterDrones; return "Drone Assembly Station";
+                case PowerPedestal _: return "Power Pedestal";
+            }
+            col = Dlc4Color;
             switch (mb)
             {
                 case WakeController _: return "Wake";

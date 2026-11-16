@@ -88,7 +88,7 @@ namespace PoppyMenu
 
             Add("esp.enemies", "ESP", "Enemy ESP", () => RenderModule.EspMobs = !RenderModule.EspMobs);
             Add("esp.interactables", "ESP", "Interactable ESP", () => RenderModule.EspInteractables = !RenderModule.EspInteractables);
-            Add("esp.teleporter", "ESP", "Teleporter ESP", () => RenderModule.EspTeleporter = !RenderModule.EspTeleporter);
+            Add("esp.teleporter", "ESP", "Teleporter & portal ESP", () => RenderModule.EspTeleporter = !RenderModule.EspTeleporter);
 
             Add("fun.instaCharge", "Fun", "Instant Ult Charge", () => FunModule.RailgunnerInstaCharge = !FunModule.RailgunnerInstaCharge);
             Add("fun.noUltCooldown", "Fun", "No Ult Cooldown", () => FunModule.RailgunnerNoUltCooldown = !FunModule.RailgunnerNoUltCooldown);
