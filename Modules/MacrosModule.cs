@@ -13,12 +13,12 @@ namespace PoppyMenu
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Macros");
-            Widgets.Note("A macro runs several custom actions at once. Add any items, buffs, currency, spawns, or features, then bind it to a key or pin it on Home.");
+            Widgets.Note("A macro runs a list of steps in one go: items, buffs, money, spawns, features. Run it from here or bind it to a key.");
             if (Widgets.BeginRow())
             {
-            _newName = Widgets.TextField(_newName, "New macro name");
+            _newName = Widgets.TextField(_newName, "Name");
             Widgets.RowSpace();
-            if (Widgets.SmallButton("New macro", Widgets.Kind.Primary, 100))
+            if (Widgets.SmallButton("Create", Widgets.Kind.Primary, 100))
             {
                 string name = string.IsNullOrWhiteSpace(_newName) ? "Macro " + (MacroStore.Macros.Count + 1) : _newName.Trim();
                 MacroStore.Macros.Add(new Macro { Id = MacroStore.NewId(), Name = name });
@@ -32,7 +32,7 @@ namespace PoppyMenu
 
             if (MacroStore.Macros.Count == 0)
             {
-                Widgets.EmptyState("No macros yet. Name one above and click New macro.");
+                Widgets.EmptyState("No macros yet. Type a name above and press Create.");
                 return;
             }
 
@@ -55,7 +55,7 @@ namespace PoppyMenu
                 string info = m.Steps.Count + (m.Steps.Count == 1 ? " step" : " steps") +
                               (key != KeyCode.None ? ", bound to [" + key + "]" : "");
                 Macro target = m;
-                Widgets.Buttons(m.Name, Rebind.IsActive ? "Press a key or button to bind this macro. Esc cancels." : info,
+                Widgets.Buttons(m.Name, Rebind.IsActive ? "Press a key or mouse button. Esc cancels." : info,
                     ("Run now", () => MacroStore.Run(target.Id)),
                     ("Bind key", () => Rebind.Capture(kc => BindStore.Add(kc, MacroStore.BindKey(target)))));
 
@@ -68,7 +68,7 @@ namespace PoppyMenu
 
         private static void DrawEditor(Macro m)
         {
-            Widgets.Header("Steps (run top to bottom)");
+            Widgets.Header("Steps, top to bottom");
             StepBuilder.Draw(s => { m.Steps.Add(s); MacroStore.Save(); });
 
             int removeAt = -1;
@@ -78,9 +78,9 @@ namespace PoppyMenu
                 Widgets.Buttons((k + 1) + ". " + m.Steps[k].Label, null, ("Remove", () => removeAt = index));
             }
             if (removeAt >= 0) { m.Steps.RemoveAt(removeAt); MacroStore.Save(); }
-            if (m.Steps.Count == 0) Widgets.Note("No steps yet. Use the buttons above to add any item, buff, spawn, feature, and more.");
+            if (m.Steps.Count == 0) Widgets.Note("No steps yet. Add one with the buttons above.");
 
-            Widgets.ConfirmButton("macro.delete." + m.Id, "Delete this macro", () => _pendingDelete = m);
+            Widgets.ConfirmButton("macro.delete." + m.Id, "Delete macro", () => _pendingDelete = m);
         }
     }
 }

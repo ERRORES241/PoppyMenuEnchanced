@@ -47,14 +47,14 @@ namespace PoppyMenu
 
             if (ModConfig.RequireServerForCheats.Value)
             {
-                Notify.Push("Skipped: host only");
+                Notify.Push("Skipped, needs the host");
                 Log.Warning($"{op} skipped: not the server (RequireServerForCheats is on).");
                 return;
             }
 
             NetworkInstanceId id = target != null ? target.netId : NetworkInstanceId.Invalid;
             new PoppyCommandMessage(op, id, i1, i2, f1, f2, f3, b1, s1).Send(NetworkDestination.Server);
-            Notify.Push(Describe(op, s1) + " (requested)");
+            Notify.Push(Describe(op, s1) + " (sent to host)");
         }
 
         private static string Describe(PoppyOp op, string s1)
@@ -63,29 +63,29 @@ namespace PoppyMenu
             {
                 case PoppyOp.GiveItem: return "Item given";
                 case PoppyOp.GiveEquipment: return "Equipment given";
-                case PoppyOp.GiveAllItems: return "Gave all items";
+                case PoppyOp.GiveAllItems: return "All items given";
                 case PoppyOp.ClearInventory: return "Inventory cleared";
                 case PoppyOp.StackInventory: return "Inventory stacked";
                 case PoppyOp.RollItems: return "Items rerolled";
-                case PoppyOp.GiveMoney: return "Money granted";
-                case PoppyOp.GiveXp: return "XP granted";
-                case PoppyOp.GiveLunar: return "Lunar coins granted";
+                case PoppyOp.GiveMoney: return "Money given";
+                case PoppyOp.GiveXp: return "XP given";
+                case PoppyOp.GiveLunar: return "Lunar coins given";
                 case PoppyOp.GiveBuff: return "Buff applied";
                 case PoppyOp.RemoveAllBuffs: return "Buffs removed";
                 case PoppyOp.Respawn: return "Respawned";
                 case PoppyOp.HealFull: return "Healed to full";
                 case PoppyOp.KillAllEnemies: return "Killed all enemies";
                 case PoppyOp.Spawn: return "Spawned " + (s1 ?? "object");
-                case PoppyOp.ChargeTeleporter: return "Charge zone filled";
+                case PoppyOp.ChargeTeleporter: return "Zone charged";
                 case PoppyOp.SkipStage: return "Skipping stage";
                 case PoppyOp.AddMountainShrine: return "Mountain shrine added";
                 case PoppyOp.SpawnShopPortal: return "Shop portal spawned";
                 case PoppyOp.SpawnGoldshoresPortal: return "Gold portal spawned";
                 case PoppyOp.SpawnMSPortal: return "Celestial portal spawned";
-                case PoppyOp.SetStagesCleared: return "Stages cleared set";
+                case PoppyOp.SetStagesCleared: return "Stage count set";
                 case PoppyOp.SetRunTime: return "Run time set";
                 case PoppyOp.SetTeamLevel: return "Team level set";
-                case PoppyOp.SetArtifact: return "Artifact toggled";
+                case PoppyOp.SetArtifact: return "Artifact switched";
                 case PoppyOp.TrueKillTarget: return "Player killed";
                 case PoppyOp.TeleportBody: return "Teleported";
                 case PoppyOp.SetTeam: return "Team changed";

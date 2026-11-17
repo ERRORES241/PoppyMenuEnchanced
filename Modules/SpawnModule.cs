@@ -41,15 +41,15 @@ namespace PoppyMenu
         {
             if (Catalogs.SpawnCards.Count == 0)
             {
-                Widgets.EmptyState("No spawn cards loaded, start a stage.");
+                Widgets.EmptyState("Nothing to spawn yet. Load into a stage.");
                 return;
             }
 
-            Widgets.SectionBegin("Spawn at Crosshair");
+            Widgets.SectionBegin("Spawn");
             _count = Widgets.IntStepper("Count", _count, 1, 1, 50);
-            _ally = Widgets.Toggle("Spawn as ally (your team)", _ally);
-            Widgets.PickerButton("Spawn Monster", "Spawn Monster", () => Rows(false), "Spawns where you aim, or just ahead of you.");
-            Widgets.PickerButton("Spawn Interactable", "Spawn Interactable", () => Rows(true), "Spawns where you aim, or just ahead of you.");
+            _ally = Widgets.Toggle("On your team", _ally);
+            Widgets.PickerButton("Monster", "Monsters", () => Rows(false), "Appears where you aim, or in front of you.");
+            Widgets.PickerButton("Interactable", "Interactables", () => Rows(true), "Appears where you aim, or in front of you.");
             Widgets.SectionEnd();
         }
     }

@@ -262,18 +262,18 @@ namespace PoppyMenu
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Movement");
-            Flight = Widgets.Toggle("Flight", Flight, "Move keys to fly, Jump up, Left Ctrl down. You can still aim and fire while flying.");
-            ModConfig.FlightSpeed.Value = Widgets.Slider("Fly Speed", ModConfig.FlightSpeed.Value, 5f, 150f, format: "0");
-            NoClip = Widgets.Toggle("No-Clip (fly through walls)", NoClip);
-            AlwaysSprint = Widgets.Toggle("Always Sprint", AlwaysSprint);
-            JumpPack = Widgets.Toggle("Jump Pack", JumpPack);
-            Bhop = Widgets.Toggle("BunnyHop (Auto-jump on land)", Bhop);
+            Flight = Widgets.Toggle("Flight", Flight, "Move keys to fly, Jump to go up, Left Ctrl to go down. Skills still work.");
+            ModConfig.FlightSpeed.Value = Widgets.Slider("Flight speed", ModConfig.FlightSpeed.Value, 5f, 150f, format: "0");
+            NoClip = Widgets.Toggle("No-clip", NoClip, "Flight that also passes through walls and floors.");
+            AlwaysSprint = Widgets.Toggle("Always sprint", AlwaysSprint);
+            JumpPack = Widgets.Toggle("Jump pack", JumpPack, "Space throws you upward, mid-air too.");
+            Bhop = Widgets.Toggle("Bunny hop", Bhop, "Hold Jump to jump again the moment you land.");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Teleportation");
-            TeleportToPing = Widgets.Toggle("Auto Teleport on Ping", TeleportToPing,
-                "Instantly teleports your survivor to wherever you place a ping in-game.");
-            Widgets.Buttons("Teleport now", null, ("To ping", TeleportToCurrentPing), ("To cursor", TeleportToCursor));
+            Widgets.SectionBegin("Teleport");
+            TeleportToPing = Widgets.Toggle("Teleport on ping", TeleportToPing,
+                "Every ping you place moves you there.");
+            Widgets.Buttons("Teleport now", "Cursor is the spot under the crosshair.", ("To ping", TeleportToCurrentPing), ("To cursor", TeleportToCursor));
             Widgets.SectionEnd();
         }
     }

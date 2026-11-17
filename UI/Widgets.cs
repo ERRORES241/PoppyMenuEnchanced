@@ -115,7 +115,12 @@ namespace PoppyMenu
         private static bool Repaint => Event.current.type == EventType.Repaint;
 
         // Reserves a row, draws divider, hover, label and description. Returns the row rect.
-        private static Rect Row(string label, string desc, float ctrlW, bool hoverable = true, GUIStyle labelStyle = null)
+        private static Matrix4x4 _rowMatrix;
+        private static bool _rowScaled;
+
+        // pressKey: the whole row is a button. It shrinks to 98% while held (the divider stays put);
+        // the caller ends the scale with EndRowPress after drawing its control.
+        private static Rect Row(string label, string desc, float ctrlW, bool hoverable = true, GUIStyle labelStyle = null, string pressKey = null)
         {
             float padX = Theme.S(14), padY = Theme.S(9), gap = Theme.S(12);
             float width = _rowWidth > 1f ? _rowWidth : Theme.S(420);
@@ -126,11 +131,13 @@ namespace PoppyMenu
 
             Rect r = GUILayoutUtility.GetRect(0f, h, GUILayout.ExpandWidth(true));
             if (Repaint && r.width > 1f) _rowWidth = r.width;
+            float press = pressKey != null ? Anim.PressScale("row:" + pressKey, r, 0.98f) : 1f;
 
             if (Repaint)
             {
                 if (_sectionOpen && _rowsInSection > 0)
                     Theme.Fill(new Rect(r.x + padX, r.y, r.width - padX * 2f, Mathf.Max(1f, Theme.S(1))), Theme.Line);
+                if (press != 1f) { _rowMatrix = Anim.Begin(r.center, press); _rowScaled = true; }
                 if (hoverable && r.Contains(Event.current.mousePosition))
                 {
                     float i = Theme.S(3);
@@ -145,6 +152,23 @@ namespace PoppyMenu
             }
             _rowsInSection++;
             return r;
+        }
+
+        private static void EndRowPress()
+        {
+            if (!_rowScaled) return;
+            Anim.End(_rowMatrix);
+            _rowScaled = false;
+        }
+
+        // GUI.Button that shrinks to 96% while held.
+        private static bool PressButton(Rect b, string text, GUIStyle st, string key)
+        {
+            float s = Anim.PressScale("btn:" + key, b, 0.96f);
+            Matrix4x4 m = Anim.Begin(b.center, s);
+            bool hit = GUI.Button(b, text, st);
+            Anim.End(m);
+            return hit;
         }
 
         // Control area of width w, vertically centred, right-aligned in the row.
@@ -232,7 +256,7 @@ namespace PoppyMenu
             if (!Show(text, desc)) return false;
             float bw = opensList ? Theme.S(16) : Theme.S(28);
             GUIStyle st = kind == Kind.Primary ? Theme.ActionLabelAccent : kind == Kind.Danger ? Theme.ActionLabelDanger : Theme.ActionLabel;
-            Rect r = Row(text, desc, bw, true, st);
+            Rect r = Row(text, desc, bw, true, st, text);
             if (Repaint)
             {
                 bool hover = r.Contains(Event.current.mousePosition);
@@ -248,6 +272,7 @@ namespace PoppyMenu
                     Icons.DrawCentered(b, Icons.Play, 12, icon);
                 }
             }
+            EndRowPress();
             return Clicked(r);
         }
 
@@ -262,7 +287,7 @@ namespace PoppyMenu
         internal static void ConfirmButton(string id, string text, Action onConfirm, string desc = null)
         {
             bool armed = _armed == id;
-            if (Action(armed ? "Click again to confirm: " + text : text, desc, Kind.Danger))
+            if (Action(armed ? "Click again: " + text : text, desc, Kind.Danger))
             {
                 if (armed) { _armed = null; onConfirm?.Invoke(); }
                 else _armed = id;
@@ -288,7 +313,7 @@ namespace PoppyMenu
             float x = c.x;
             for (int i = 0; i < buttons.Length; i++)
             {
-                if (GUI.Button(new Rect(x, c.y, widths[i], h), buttons[i].text, Theme.Button)) buttons[i].onClick?.Invoke();
+                if (PressButton(new Rect(x, c.y, widths[i], h), buttons[i].text, Theme.Button, label + "/" + buttons[i].text)) buttons[i].onClick?.Invoke();
                 x += widths[i] + gap;
             }
         }
@@ -304,7 +329,7 @@ namespace PoppyMenu
             float pad = Theme.S(14), gap = Theme.S(6), h = Theme.S(28);
             float w = (r.width - pad * 2f - gap * (buttons.Length - 1)) / buttons.Length;
             for (int i = 0; i < buttons.Length; i++)
-                if (GUI.Button(new Rect(r.x + pad + i * (w + gap), r.y + (r.height - h) * 0.5f, w, h), buttons[i].text, Theme.Button))
+                if (PressButton(new Rect(r.x + pad + i * (w + gap), r.y + (r.height - h) * 0.5f, w, h), buttons[i].text, Theme.Button, "grid/" + buttons[i].text))
                     buttons[i].onClick?.Invoke();
             _rowsInSection++;
         }
@@ -324,11 +349,14 @@ namespace PoppyMenu
             Rect r = Row(label, desc, sw + (kw > 0 ? kw + Theme.S(10) : 0f));
             if (Repaint)
             {
+                // Knob slides and colours cross-fade over 160 ms; with Reduce motion only the colours fade.
                 Rect t = Ctrl(r, sw, sh);
-                Theme.Rounded(t, 10f, value ? Theme.On : Theme.CtrlHover);
+                float a = Anim.To("toggle:" + label, value ? 1f : 0f, Anim.Toggle, Anim.EaseOut);
+                float ka = Anim.Reduce ? (value ? 1f : 0f) : a;
+                Theme.RoundedTint(t, 10f, Color.Lerp(Theme.CtrlHover, Theme.On, a));
                 float k = Theme.S(14), m = Theme.S(3);
-                Rect knob = new Rect(value ? t.xMax - k - m : t.x + m, t.y + (sh - k) * 0.5f, k, k);
-                Theme.Rounded(knob, 7f, value ? Color.white : Theme.Sub);
+                Rect knob = new Rect(Mathf.Round(Mathf.Lerp(t.x + m, t.xMax - k - m, ka)), t.y + (sh - k) * 0.5f, k, k);
+                Theme.RoundedTint(knob, 7f, Color.Lerp(Theme.Sub, Color.white, a));
                 if (kw > 0)
                     Theme.Kbd.Draw(new Rect(t.x - Theme.S(10) - kw, t.y, kw, sh), C(keyText), false, false, false, false);
             }
@@ -441,8 +469,20 @@ namespace PoppyMenu
         private static int _ddIndex, _ddPicked;
         private static Rect _ddAnchor; // screen space
 
+        private static float _ddOpenedAt, _ddClosedAt = -10f, _ddCloseFrom;
+
         internal static bool DropdownOpen => _ddKey != null;
-        internal static void CloseDropdown() => _ddKey = null;
+
+        // Instant close (tab change): the list must not fade out over another page.
+        internal static void CloseDropdown() { _ddKey = null; _ddClosedAt = -10f; }
+
+        // Closing after a click or scroll: fades out from wherever the opening got to.
+        private static void CloseDropdownAnimated()
+        {
+            _ddCloseFrom = Anim.Progress(_ddOpenedAt, Anim.DropdownIn, Anim.EaseOut);
+            _ddKey = null;
+            _ddClosedAt = Anim.Now;
+        }
 
         // "Priority   [Closest to Crosshair  v]". Returns the selected index.
         internal static int Dropdown(string label, int index, string[] options, string desc = null)
@@ -480,6 +520,8 @@ namespace PoppyMenu
                 _ddKey = key;
                 _ddOptions = options;
                 _ddIndex = index;
+                _ddOpenedAt = Anim.Now;
+                _ddClosedAt = -10f;
             }
             return index;
         }
@@ -509,21 +551,35 @@ namespace PoppyMenu
                     int i = Mathf.FloorToInt((e.mousePosition.y - list.y - Theme.S(4)) / Theme.S(30));
                     if (i >= 0 && i < _ddOptions.Length) { _ddPickedKey = _ddKey; _ddPicked = i; }
                 }
-                _ddKey = null;
+                CloseDropdownAnimated();
                 e.Use();
             }
-            else if (e.type == EventType.ScrollWheel || (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape))
+            else if (e.type == EventType.ScrollWheel) CloseDropdownAnimated();
+            else if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
             {
-                _ddKey = null;
-                if (e.type == EventType.KeyDown) e.Use();
+                CloseDropdown(); // keyboard: no animation
+                e.Use();
             }
         }
 
         // Call after the content so the list covers it.
         internal static void DropdownDraw(Vector2 origin, float windowH)
         {
-            if (_ddKey == null || !Repaint) return;
+            if (!Repaint || _ddOptions == null) return;
+            bool open = _ddKey != null;
+            float a;
+            if (open) a = Anim.Progress(_ddOpenedAt, Anim.DropdownIn, Anim.EaseOut);
+            else if (Anim.Now - _ddClosedAt < Anim.DropdownOut) a = _ddCloseFrom * (1f - Anim.Progress(_ddClosedAt, Anim.DropdownOut, Anim.EaseOut));
+            else return;
+
+            // Opens out of its trigger: fade in and grow from 95% around the corner nearest the trigger.
             Rect list = DropdownList(origin, windowH);
+            bool above = list.y < _ddAnchor.y - origin.y;
+            Vector2 pivot = new Vector2(list.xMax, above ? list.yMax : list.y);
+            Color prev = GUI.color;
+            GUI.color = Anim.Alpha(prev, a);
+            Matrix4x4 saved = Anim.Begin(pivot, Anim.Reduce ? 1f : Mathf.Lerp(0.95f, 1f, a));
+
             Theme.PopupBg.Draw(list, false, false, false, false);
             float itemH = Theme.S(30), pad = Theme.S(4);
             Vector2 m = Event.current.mousePosition;
@@ -531,10 +587,13 @@ namespace PoppyMenu
             {
                 Rect it = new Rect(list.x + pad, list.y + pad + i * itemH, list.width - pad * 2f, itemH);
                 bool sel = i == _ddIndex;
-                if (it.Contains(m)) Theme.Rounded(it, 6f, Theme.CtrlHover);
+                if (open && it.Contains(m)) Theme.Rounded(it, 6f, Theme.CtrlHover);
                 GUI.Label(new Rect(it.x + Theme.S(10), it.y, it.width - Theme.S(36), itemH), _ddOptions[i], sel ? Theme.LabelBold : Theme.Label);
                 if (sel) Icons.DrawCentered(new Rect(it.xMax - Theme.S(26), it.y, Theme.S(16), itemH), Icons.Check, 14, Theme.Accent);
             }
+
+            Anim.End(saved);
+            GUI.color = prev;
         }
 
         // Segmented choice inside a row. Returns the selected index.
@@ -547,21 +606,47 @@ namespace PoppyMenu
             for (int i = 0; i < options.Length; i++) { widths[i] = TextW(Theme.SegOn, options[i]) + Theme.S(22); w += widths[i]; }
             Rect r = Row(label, desc, w);
             Rect c = Ctrl(r, w, h);
-            return SegmentedBar(c, index, options, widths);
+            return SegmentedBar(c, index, options, widths, label);
         }
 
-        internal static int SegmentedBar(Rect c, int index, string[] options, float[] widths)
+        private static GUIStyle _segOnText, _segOnSrc;
+
+        // SegOn without its background: the label of the selected segment, drawn over the sliding pill.
+        private static GUIStyle SegOnText()
+        {
+            if (_segOnSrc == Theme.SegOn && _segOnText != null) return _segOnText;
+            _segOnSrc = Theme.SegOn;
+            _segOnText = new GUIStyle(Theme.SegOn);
+            foreach (GUIStyleState st in new[] { _segOnText.normal, _segOnText.hover, _segOnText.active, _segOnText.focused,
+                                                 _segOnText.onNormal, _segOnText.onHover, _segOnText.onActive, _segOnText.onFocused })
+                st.background = null;
+            return _segOnText;
+        }
+
+        // The selected pill slides to the new segment over 200 ms (ease-in-out: it moves on screen);
+        // with Reduce motion it jumps.
+        internal static int SegmentedBar(Rect c, int index, string[] options, float[] widths, string key = null)
         {
             float pad = Theme.S(3);
             Theme.Rounded(c, 9f, Theme.Rail);
-            float x = c.x + pad;
+            int picked = index;
+            float x = c.x + pad, ax = x, aw = 0f;
             for (int i = 0; i < options.Length; i++)
             {
                 Rect b = new Rect(x, c.y + pad, widths[i], c.height - pad * 2f);
-                if (GUI.Button(b, options[i], i == index ? Theme.SegOn : Theme.Seg)) index = i;
+                if (i == index) { ax = x; aw = widths[i]; }
+                else if (GUI.Button(b, options[i], Theme.Seg)) picked = i;
                 x += widths[i];
             }
-            return index;
+
+            string k = "seg:" + (key ?? string.Join("|", options));
+            bool snap = Anim.Reduce;
+            float px = Anim.To(k + ":x", ax - c.x, Anim.Slide, Anim.EaseInOut, snap);
+            float pw = Anim.To(k + ":w", aw, Anim.Slide, Anim.EaseInOut, snap);
+            Rect active = new Rect(ax, c.y + pad, aw, c.height - pad * 2f);
+            if (Repaint) Theme.SegOn.Draw(new Rect(Mathf.Round(c.x + px), active.y, Mathf.Round(pw), active.height), false, false, false, false);
+            if (aw > 0f && GUI.Button(active, options[index], SegOnText())) picked = index;
+            return picked;
         }
 
         internal static float[] SegmentWidths(string[] options)
@@ -579,7 +664,7 @@ namespace PoppyMenu
         {
             if (!Show(label, desc)) return;
             bool listening = Rebind.Listening == entry;
-            string text = listening ? "Press a key..." : entry.Value == KeyCode.None ? "Not set" : entry.Value.ToString();
+            string text = listening ? "Press a key" : entry.Value == KeyCode.None ? "Not set" : entry.Value.ToString();
             float xw = Theme.S(22), h = Theme.S(28);
             float w = TextW(Theme.Label, text) + Theme.S(12) + xw + Theme.S(4);
             Rect r = Row(label, desc, w);
@@ -632,9 +717,10 @@ namespace PoppyMenu
         internal static bool SmallButton(string text, Kind kind = Kind.Normal, float width = 0f)
         {
             GUIStyle st = kind == Kind.Primary ? Theme.Primary : kind == Kind.Danger ? Theme.DangerBtn : Theme.Button;
-            return width > 0f
-                ? GUILayout.Button(text, st, GUILayout.Height(Theme.S(28)), GUILayout.Width(Theme.S(width)))
-                : GUILayout.Button(text, st, GUILayout.Height(Theme.S(28)));
+            Rect r = width > 0f
+                ? GUILayoutUtility.GetRect(C(text), st, GUILayout.Height(Theme.S(28)), GUILayout.Width(Theme.S(width)))
+                : GUILayoutUtility.GetRect(C(text), st, GUILayout.Height(Theme.S(28)));
+            return PressButton(r, text, st, "small/" + text + "/" + _fieldCounter);
         }
 
         internal static string TextField(string value, string placeholder = null, float width = 0f)

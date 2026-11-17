@@ -203,6 +203,17 @@ namespace PoppyMenu
             _roundStyle.Draw(r, GUIContent.none, false, false, false, false);
         }
 
+        // Same shape from one white texture tinted with GUI.color. For colours that animate:
+        // Rounded caches a texture per colour, which would grow without bound mid-transition.
+        internal static void RoundedTint(Rect r, float radius, Color c)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            Color prev = GUI.color;
+            GUI.color = new Color(prev.r * c.r, prev.g * c.g, prev.b * c.b, prev.a * c.a);
+            Rounded(r, radius, Color.white);
+            GUI.color = prev;
+        }
+
         internal static string Hex(Color c) => ColorUtility.ToHtmlStringRGB(c);
 
         /* ═══════════════════════════════════════════════════════════════

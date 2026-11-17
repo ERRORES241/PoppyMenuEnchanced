@@ -17,13 +17,13 @@ namespace PoppyMenu
             if (!PlayerContext.InGame) { Widgets.EmptyState("Start a run first."); return; }
 
             var users = NetworkUser.readOnlyInstancesList;
-            if (users == null || users.Count == 0) { Widgets.EmptyState("No players in the lobby."); return; }
+            if (users == null || users.Count == 0) { Widgets.EmptyState("No players."); return; }
 
-            Widgets.SectionBegin("Options");
+            Widgets.SectionBegin("Amounts");
             if (!NetUtil.IsServer)
-                Widgets.Note("You're a client, so these go to the host and only apply if the host turned on \"Allow Others To Use This\".");
+                Widgets.Note("You're not the host. These actions work only if the host turned on \"Let clients use the menu\".");
             _hurt = Widgets.IntStepper("Hurt amount", _hurt, 50, 1, 1000000000);
-            _giveCount = Widgets.IntStepper("Give item count", _giveCount, 1, 1, 100);
+            _giveCount = Widgets.IntStepper("Items per give", _giveCount, 1, 1, 100);
             Widgets.SectionEnd();
 
             foreach (NetworkUser user in users)
@@ -41,13 +41,13 @@ namespace PoppyMenu
             if (body != null && body.healthComponent != null)
                 Widgets.Label($"{body.GetDisplayName()}   ·   {Mathf.CeilToInt(body.healthComponent.health)} / {Mathf.CeilToInt(body.healthComponent.fullCombinedHealth)} HP");
             else
-                Widgets.Label("No body (dead or not spawned)");
+                Widgets.Label("Dead or not spawned");
 
             if (!isLocal && NetUtil.IsServer)
             {
                 string banId = "players.ban." + user.userName;
                 bool armed = _banArmed == banId;
-                Widgets.Buttons("Moderation", armed ? "Click Confirm ban to ban this player." : null,
+                Widgets.Buttons("Moderation", armed ? "Press Confirm ban to finish." : null,
                     ("Kick", () => NetUtil.KickUser(user)),
                     (armed ? "Confirm ban" : "Ban", () =>
                     {

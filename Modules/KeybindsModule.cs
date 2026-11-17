@@ -9,15 +9,15 @@ namespace PoppyMenu
 
         internal override void DrawMenu()
         {
-            Widgets.SectionBegin("Add a keybind");
-            Widgets.PickerButton("Bind a feature", "Pick a feature", ActionRows, Rebind.IsActive
-                ? "Now press a key or button. Esc cancels."
-                : "Pick any feature, then press the key or mouse button you want. Bindings fire while the menu is closed.");
+            Widgets.SectionBegin("New keybind");
+            Widgets.PickerButton("Bind a feature", "Features", ActionRows, Rebind.IsActive
+                ? "Press a key or mouse button. Esc cancels."
+                : "Choose a feature, then press a key or mouse button. Keybinds work while the menu is closed.");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Your keybinds");
+            Widgets.SectionBegin("Keybinds");
             if (BindStore.Binds.Count == 0)
-                Widgets.Note("Nothing bound yet.");
+                Widgets.Note("No keybinds yet.");
 
             for (int i = BindStore.Binds.Count - 1; i >= 0; i--)
             {

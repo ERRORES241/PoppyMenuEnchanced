@@ -81,28 +81,28 @@ namespace PoppyMenu
 
         internal override void DrawMenu()
         {
-            Widgets.SectionBegin("Camera & FOV");
-            FovOverride = Widgets.Toggle("FOV Changer", FovOverride);
+            Widgets.SectionBegin("Camera");
+            FovOverride = Widgets.Toggle("Custom FOV", FovOverride);
             if (FovOverride)
             {
-                FovValue = Widgets.Slider("Field of View", FovValue, 60f, 140f, format: "0\u00B0");
+                FovValue = Widgets.Slider("FOV", FovValue, 60f, 140f, format: "0\u00B0");
             }
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("ESP / Wallhack");
+            Widgets.SectionBegin("ESP");
             EspMobs = Widgets.Toggle("Enemies", EspMobs);
-            EspInteractables = Widgets.Toggle("Interactables", EspInteractables);
+            EspInteractables = Widgets.Toggle("Interactables", EspInteractables, "Chests, shrines, printers and other things you can use.");
             if (EspInteractables)
             {
-                EspFilterChests = Widgets.Toggle("  Chests & Terminals", EspFilterChests);
+                EspFilterChests = Widgets.Toggle("  Chests and terminals", EspFilterChests);
                 EspFilterShrines = Widgets.Toggle("  Shrines", EspFilterShrines);
-                EspFilterPrinters = Widgets.Toggle("  3D Printers", EspFilterPrinters);
+                EspFilterPrinters = Widgets.Toggle("  Printers", EspFilterPrinters);
                 EspFilterScrappers = Widgets.Toggle("  Scrappers", EspFilterScrappers);
-                EspFilterDrones = Widgets.Toggle("  Drones & Turrets", EspFilterDrones);
+                EspFilterDrones = Widgets.Toggle("  Drones and turrets", EspFilterDrones);
                 EspFilterBarrels = Widgets.Toggle("  Barrels", EspFilterBarrels);
                 EspFilterOther = Widgets.Toggle("  Other", EspFilterOther);
             }
-            EspTeleporter = Widgets.Toggle("Teleporter & Portals", EspTeleporter, "Markers draw through walls while in a run.");
+            EspTeleporter = Widgets.Toggle("Teleporter and portals", EspTeleporter);
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Display");
@@ -111,7 +111,7 @@ namespace PoppyMenu
             ShowEnemyHealth = Widgets.Toggle("Show enemy health", ShowEnemyHealth);
             ShowOutline = Widgets.Toggle("Text outline", ShowOutline);
             FontSize = Widgets.Slider("Font size", FontSize, 8f, 24f, format: "0");
-            MaxDistance = Widgets.Slider("Max distance", MaxDistance, 0f, 500f, "0 means unlimited.", "0 m");
+            MaxDistance = Widgets.Slider("Max distance", MaxDistance, 0f, 500f, "0 = no limit.", "0 m");
             MarkerSize = Widgets.Slider("Marker size", MarkerSize, 2f, 16f, format: "0");
             Widgets.SectionEnd();
         }

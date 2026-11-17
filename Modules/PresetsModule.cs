@@ -114,7 +114,7 @@ namespace PoppyMenu
                 if (p.IsDefaultStartup)
                 {
                     p.Apply();
-                    Notify.Push("Loaded startup config: " + p.Name);
+                    Notify.Push("Startup config loaded: " + p.Name);
                     break;
                 }
             }
@@ -134,19 +134,19 @@ namespace PoppyMenu
             // Profiles are read from disk; keep the menu search from doing that every frame.
             if (Widgets.Searching) return;
 
-            Widgets.SectionBegin("Configuration Manager");
-            Widgets.Note("Save, load, rename, or delete your custom feature & ESP profiles.");
+            Widgets.SectionBegin("Configs");
+            Widgets.Note("A config remembers which features are on and your aimbot, ESP and movement settings.");
             if (Widgets.BeginRow())
             {
-            _newConfigName = Widgets.TextField(_newConfigName, "New config name");
+            _newConfigName = Widgets.TextField(_newConfigName, "Name");
             Widgets.RowSpace();
-            if (Widgets.SmallButton("Save current", Widgets.Kind.Primary, 110))
+            if (Widgets.SmallButton("Save", Widgets.Kind.Primary, 110))
             {
                 string name = string.IsNullOrWhiteSpace(_newConfigName) ? "Config_" + DateTime.Now.ToString("HHmmss") : _newConfigName.Trim();
                 ConfigProfile p = ConfigProfile.CaptureCurrent(name);
                 SaveProfile(p);
                 _newConfigName = "";
-                Notify.Push("Saved config: " + p.Name);
+                Notify.Push("Config saved: " + p.Name);
             }
             Widgets.EndRow();
             }
@@ -155,8 +155,8 @@ namespace PoppyMenu
             List<ConfigProfile> profiles = GetSavedProfiles();
             if (profiles.Count == 0)
             {
-                Widgets.SectionBegin("Saved Configs");
-                Widgets.Note("No saved configs yet. Enter a name above and click Save current.");
+                Widgets.SectionBegin("Saved");
+                Widgets.Note("Nothing saved yet. Type a name above and press Save.");
                 Widgets.SectionEnd();
                 return;
             }
@@ -170,7 +170,7 @@ namespace PoppyMenu
                 if (Widgets.BeginRow())
                 {
                     if (!_renameText.TryGetValue(key, out string text)) text = key;
-                    text = Widgets.TextField(text, "Config name");
+                    text = Widgets.TextField(text, "Name");
                     _renameText[key] = text;
                     Widgets.RowSpace();
                     if (text != key && !string.IsNullOrWhiteSpace(text))
@@ -185,7 +185,7 @@ namespace PoppyMenu
                     if (Widgets.SmallButton("Load", Widgets.Kind.Primary, 70))
                     {
                         profile.Apply();
-                        Notify.Push("Loaded config: " + profile.Name);
+                        Notify.Push("Config loaded: " + profile.Name);
                     }
                     Widgets.RowSpace();
                     if (Widgets.SmallButton("Overwrite", Widgets.Kind.Normal, 90))
@@ -193,7 +193,7 @@ namespace PoppyMenu
                         ConfigProfile updated = ConfigProfile.CaptureCurrent(profile.Name);
                         updated.IsDefaultStartup = profile.IsDefaultStartup;
                         SaveProfile(updated);
-                        Notify.Push("Overwrote config: " + profile.Name);
+                        Notify.Push("Config overwritten: " + profile.Name);
                     }
                     Widgets.RowSpace();
                     if (Widgets.SmallButton("Delete", Widgets.Kind.Danger, 74)) _pendingDelete = profile.Name;
@@ -201,7 +201,7 @@ namespace PoppyMenu
                 }
 
                 bool isDefault = profile.IsDefaultStartup;
-                bool newDefault = Widgets.Toggle("Load on startup (Default profile)", isDefault);
+                bool newDefault = Widgets.Toggle("Load at startup", isDefault);
                 if (newDefault != isDefault)
                 {
                     profile.IsDefaultStartup = newDefault;
@@ -214,7 +214,7 @@ namespace PoppyMenu
             if (!string.IsNullOrEmpty(_pendingDelete))
             {
                 DeleteProfile(_pendingDelete);
-                Notify.Push("Deleted config: " + _pendingDelete);
+                Notify.Push("Config deleted: " + _pendingDelete);
                 _pendingDelete = null;
             }
         }

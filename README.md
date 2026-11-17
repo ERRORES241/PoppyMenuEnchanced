@@ -6,67 +6,65 @@ A personal project, open source under the MIT license. Pull requests and ideas a
 
 ## Features
 
-Organized into tabs on an icon rail, each with focused sub-pages. Every setting is a row with a short description under its name, and the search box in the top bar finds any setting or action across all tabs. Three themes (Midnight, Violet, RoR2 gold), and the menu scales with your screen resolution.
+Tabs sit on an icon rail on the left, and some tabs have sub-pages. Each setting is a row with a one-line description under its name. The search box at the top finds any setting on any tab. There are three themes (Midnight, Violet, RoR2 gold), and the menu scales with screen height.
 
 ### Aimbot
-- Silent aim that hits the target closest to your crosshair on any survivor without moving your camera (works on hitscan and projectiles).
-- **Railgunner Weak Point Targeting:** Automatically locks onto enemy red critical weak points (`isSniperTarget`) when actively aiming/scoping with Railgunner skills.
-- **No Spread & No Recoil:** Eliminates weapon spread and camera kickback across all survivor skills.
-- **Customization:** Target priority (crosshair, distance, low HP, high HP), prioritize bosses, line-of-sight check, FOV/range limits, homing projectiles, magic bullet (penetrate walls), and smooth continuous FOV overlay circle.
+- Silent aim: shots go to the target, the camera stays where you point it. Works with hitscan and projectiles on every survivor.
+- Optional hold key. Without one, the aimbot is on whenever it's enabled.
+- Target priority: closest to crosshair, closest, lowest HP, highest HP. Options for bosses first, sticky target, line of sight only, range and an FOV limit with an on-screen circle.
+- Railgunner: while scoped, aims at the red weak points.
+- Magic bullet: your projectiles turn toward the target and your shots go through walls. Host or solo.
+- No spread and no recoil.
 
 ### Visuals
-- ESP for enemies, interactables, teleporters and portals through walls.
-- **Category Filters:** Toggle ESP rendering independently for Chests/Multishops, Shrines, Drones/Turrets, Printers, Scrappers, Barrels, and Other interactables.
-- **Shrine & Pricing Accuracy:** Correct price formatting for shrines (Mountain Shrines, Shrine of Chance, Cleansing Pools) that do not require money, omitting misleading costs.
-- **Void Potentials & Cradles:** Distinct purple markers for Void Potentials (OptionPickup) and Void Cradles.
-- **DLC Objects:** Markers for the DLC2 Wok and Aurelionite Heart, the DLC3 Drone Scrapper, Drone Assembly Station, Power Pedestal, power vaults, Solus Heart and Access Codes nodes, and the DLC4 Wake, Wake offerings and stops, Trial Gong, Hex and Drain altars. Costs in souls, wake flowers, hexes and items use the game's own wording.
-- **Quality mod support:** Item names from Gorakh's Quality mod show their quality tier in ESP labels.
-- **Dynamic Localization:** ESP labels use native game language tokens (Russian, English, etc.).
-- **Active Effects HUD:** Draggable on-screen HUD displaying currently active toggles (God Mode, Aimbot, Sprint, etc.) with automatic pixel-accurate height scaling.
+- ESP through walls for enemies, interactables, the teleporter and portals.
+- Interactables can be filtered: chests and terminals, shrines, printers, scrappers, drones and turrets, barrels, everything else.
+- Labels show the price in the game's own units. Shrines that don't cost money show no price.
+- Void Potentials and Void Cradles get their own purple markers.
+- DLC objects: the Wok and Aurelionite Heart (DLC2); Drone Scrapper, Drone Assembly Station, Power Pedestal, power vaults, Solus Heart and Access Codes nodes (DLC3); Wake, Wake offerings and stops, Trial Gong, Hex and Drain altars (DLC4).
+- Names come from the game, so they follow the game language. Items from Gorakh's Quality mod show their quality tier.
+- Custom camera FOV.
 
 ### Movement
-- **Flight & No-Clip:** Free flight movement across the map.
-- **Attack-Aware Always Sprint:** Forces sprinting when moving without interrupting attack/skill animations or standing idle.
-- **BunnyHop (Auto-Jump) & Jump Pack:** Integrated auto-jumping that preserves Wax Quail momentum and Headstomper mechanics.
-- **Teleportation:**
-  - **Auto Teleport on Ping:** Automatically teleports the survivor to any placed ping (terrain or targeted entity) with vertical offset correction and velocity dampening.
-  - **Teleport to Current Ping:** On-demand teleport to the player's active ping coordinate via button or keybind.
-  - **Teleport to Cursor:** Instantly teleports to the targeted surface along the crosshair aim ray.
+- Flight and no-clip. No-clip is flight that also passes through walls and floors.
+- Always sprint. It doesn't cut off attacks and doesn't run while you stand still.
+- Bunny hop: hold Jump to jump again the moment you land. Wax Quail and H3AD-5T v2 still work.
+- Jump pack: Space throws you upward, mid-air too.
+- Teleport on every ping, or once to your current ping or to the spot under the crosshair. Both can be bound to a key.
 
 ### Player
-Main controls for the local character across three sub-pages:
-- **Survival:** God mode, Semi-Godmode (Buddha), Skills No CD, full heal, hurt, respawn, and instant Kill All Enemies.
-- **Economy:** Give Money, XP, and Lunar Coins with configurable numerical stepper inputs.
-- **Stats:** Live readout and multipliers for damage, attack speed, movement speed, armor, crit chance, and max health.
-- **Items:** Searchable item and equipment giver with tier color coding, Stack Inventory (Shrine of Order), Reroll Items, Clear Inventory, Undo Last Change, Equipment No Cooldown toggle, DLC4 key item giver (Cursed Book), and configurable **Sale Star Drop Count Multiplier** (customize item count spawned on Sale Star triggers).
+Three sub-pages for your own character:
+- **Player:** god mode, semi-god mode (never below 1 HP), no skill cooldowns, heal, hurt, respawn. Money, experience and lunar coins with an amount you set. Buffs with a duration, damage over time effects, remove all buffs.
+- **Stats:** multipliers for damage, attack speed, move speed and max health, bonus armor and crit chance, and a live readout of your current stats.
+- **Items:** item and equipment picker with tier colors, DLC4 key items, give all items. Stack (like a Shrine of Order), reroll within each tier, clear, and undo for the last of these. No equipment cooldown. A fixed number of drops for chests opened with Sale Star.
 
 ### World
-Stage, run, and server management across sub-pages:
-- **World:** Match freeze, run timer freeze, time scaling (slow motion/fast forward), No Enemies mode, experience lock, and profile save prevention.
-- **Shrines:** **100% Shrine of Chance Win Rate** (guarantees an item drop on every roll without empty failures) and **Infinite Shrine of Chance Uses** (prevents shrines from closing after max purchases).
-- **Spawn:** Spawn monsters or interactables at crosshairs with team and count parameters. Cleaned catalog names without raw asset tags.
-- **Run:** Set stage clear count, run time, team level, toggle active artifacts, and stage skip.
-- **Teleporter:** Instant charge toggle (teleporter, Void Fields cells, Void Locus signals, moon pillars), stage skip, and Mountain Shrine stack adder.
-- **Players:** Lobby player controls (heal, revive, hurt, kill, teleport, team change, item grant, kick/ban).
+Five sub-pages:
+- **World:** freeze the game, freeze the run timer, game speed. Kill all enemies, no enemies, no experience gain, don't save profile. Shrine of Chance that always pays and never closes.
+- **Teleporter:** instant charge (also Void Fields cells, Void Locus signals and moon pillars), skip stage, add a Mountain Shrine.
+- **Spawn:** monsters and interactables where you aim, with a count and an option to spawn them on your team.
+- **Run:** stages cleared, run time, team level, change stage, artifacts.
+- **Players:** for each player in the lobby: heal, hurt, kill, teleport to them or bring them to you, change team, give items. The host can kick and ban.
 
 ### Fun
-Dedicated survivor-specific utilities and mechanics:
-- **Instant Ult Charge (Railgunner):** Instant 100% charge completion for Railgunner's ultimate upon activation.
-- **No Ult Cooldown (Railgunner):** Resets Special skill cooldown and bypasses the 5-second overheat/backpack lockout without altering primary, secondary, or utility skills.
-- **Ult Spam (Railgunner):** Converts primary M1 (LMB) attacks into Supercharge ultimate bullets for continuous un-scoped ultimate firing.
+Railgunner only:
+- **Instant ult charge:** the special is ready to fire with no charge-up.
+- **No ult cooldown:** refills the special and skips the 5 s overheat. Other skills keep their cooldowns.
+- **Every shot is an ult:** primary fire shoots Supercharge rounds, scoped or not.
 
-### Settings & Configuration
-- **Settings:** Menu keybind, theme, automatic resolution scaling plus a size multiplier, active-effects HUD, host permission toggles, catalog refresh, and window reset.
-- **Keybinds:** Map menu actions, toggles, or macros to keyboard and mouse buttons (including side mouse buttons).
-- **Presets & Macros:** Save toggle profiles, export/import preset codes, and build custom multi-action execution chains bound to single hotkeys.
+### Settings
+- **Configs:** save which features are on along with aimbot, ESP and movement settings. Load, overwrite, rename, and pick one to load at startup.
+- **Keybinds:** bind any feature or macro to a key or mouse button, side buttons included. Keybinds work while the menu is closed.
+- **Settings:** menu key, theme, resolution scaling and a size multiplier, reduce motion, the active list, multiplayer permissions, reload lists, reset window position.
+- **Macros:** a list of steps (items, buffs, money, spawns, features, other macros) run in one go, from the menu or a key.
 
 ## Controls
-- Default menu key: `Insert` (rebindable in Settings or Keybinds).
-- Click and drag title bars to move windows; drag bottom-right handles to resize.
-- Type in the search box to find a setting on any tab; Esc clears it.
+- The menu opens with `Insert`. The key can be changed in Settings.
+- Drag the top bar to move the window and the dots in the bottom-right corner to resize it.
+- Type in the search box to find a setting. Esc clears it.
 
 ## Multiplayer
-Host permissions apply by default. Server-side changes (items, spawns, match freeze) require host privileges or solo play. Visual and client-side movement features operate locally.
+Anything that changes the game state (items, spawns, freezing the game) needs the host, so it works for the host or in solo. Visuals and movement run locally. By default, players without host rights can't use the menu in your game; Settings has a switch for that.
 
 ## Installation
 Drop `PoppyMenuEnchanced.dll` into `Risk of Rain 2/BepInEx/plugins` or install via r2modman / Thunderstore Mod Manager.

@@ -37,10 +37,10 @@ namespace PoppyMenu
             Widgets.SectionBegin("Teleporter");
             TeleporterInteraction tp = TeleporterInteraction.instance;
             Widgets.Value("Charge", tp != null ? Mathf.FloorToInt(tp.chargeFraction * 100f) + "%" : "No teleporter");
-            InstaCharge = Widgets.Toggle("Instant Charge (hold)", InstaCharge,
-                "Also fills Void Fields cells, Void Locus signals and moon pillars.");
-            Widgets.Button("Skip Stage", () => NetUtil.Do(PoppyOp.SkipStage));
-            Widgets.Button("Add Mountain Shrine Stack", () => NetUtil.Do(PoppyOp.AddMountainShrine));
+            InstaCharge = Widgets.Toggle("Instant charge", InstaCharge,
+                "Also charges Void Fields cells, Void Locus signals and moon pillars.");
+            Widgets.Button("Skip stage", () => NetUtil.Do(PoppyOp.SkipStage));
+            Widgets.Button("Add Mountain Shrine", "Same as using a Shrine of the Mountain: one more boss, more loot.", () => NetUtil.Do(PoppyOp.AddMountainShrine));
             Widgets.SectionEnd();
         }
     }

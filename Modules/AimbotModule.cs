@@ -5,7 +5,7 @@ namespace PoppyMenu
     internal class AimbotModule : PoppyModule
     {
         private static readonly string[] Priorities =
-            { "Closest to Crosshair", "Closest Distance", "Lowest HP", "Highest HP" };
+            { "Closest to crosshair", "Closest", "Lowest HP", "Highest HP" };
 
         internal override void Tick() => Aim.Tick();
         internal override void DrawOverlay() => Aim.DrawOverlay();
@@ -15,41 +15,41 @@ namespace PoppyMenu
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Aimbot");
-            Aim.Enabled = Widgets.Toggle("Enable Aimbot", Aim.Enabled, ModConfig.SilentAimKey.Value,
-                "Silent aim. Your shots go to the target, your camera never moves.");
+            Aim.Enabled = Widgets.Toggle("Aimbot", Aim.Enabled, ModConfig.SilentAimKey.Value,
+                "Shots go to the target. The camera stays where you point it.");
             Widgets.KeybindRow("Aim hold key", ModConfig.SilentAimKey, ModConfig.SilentAimKey.Value == KeyCode.None
-                ? "No hold key, so aim is on whenever it's enabled. Click and press a key or mouse button."
-                : $"Only active while you hold [{ModConfig.SilentAimKey.Value}]. X clears it.");
+                ? "Not set, so the aimbot is always on. Click, then press a key or mouse button."
+                : $"Works only while [{ModConfig.SilentAimKey.Value}] is held. X clears the key.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Targeting");
             Aim.Sorting = Widgets.Dropdown("Priority", Aim.Sorting, Priorities);
 
-            Aim.PrioritizeBosses = Widgets.Toggle("Prioritize Bosses", Aim.PrioritizeBosses);
-            Aim.TargetWeakPoints = Widgets.Toggle("Railgunner: Target Weak Points", Aim.TargetWeakPoints,
-                "When scoped as Railgunner, aims at red weak points for guaranteed crits.");
-            Aim.Sticky = Widgets.Toggle("Sticky Target", Aim.Sticky, "Keeps one target until it dies or leaves range.");
-            Aim.RequireLoS = Widgets.Toggle("Require Line of Sight", Aim.RequireLoS);
+            Aim.PrioritizeBosses = Widgets.Toggle("Bosses first", Aim.PrioritizeBosses);
+            Aim.TargetWeakPoints = Widgets.Toggle("Railgunner weak points", Aim.TargetWeakPoints,
+                "While scoped, aims at the red weak points. Hits there always crit.");
+            Aim.Sticky = Widgets.Toggle("Sticky target", Aim.Sticky, "Stays on one target until it dies or leaves range.");
+            Aim.RequireLoS = Widgets.Toggle("Line of sight only", Aim.RequireLoS, "Ignores targets behind walls.");
 
-            Aim.MaxRange = Widgets.Slider("Max Range", Aim.MaxRange, 20f, 600f, format: "0 m");
-            Aim.UseFov = Widgets.Toggle("Limit to FOV cone", Aim.UseFov);
+            Aim.MaxRange = Widgets.Slider("Range", Aim.MaxRange, 20f, 600f, format: "0 m");
+            Aim.UseFov = Widgets.Toggle("FOV limit", Aim.UseFov, "Only targets inside the circle around the crosshair.");
             if (Aim.UseFov)
-                Aim.Fov = Widgets.Slider("FOV", Aim.Fov, 1f, 180f, format: "0°");
+                Aim.Fov = Widgets.Slider("FOV size", Aim.Fov, 1f, 180f, format: "0°");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Projectiles");
-            Aim.MagicBullet = Widgets.Toggle("Magic Bullet (shoot through walls)", Aim.MagicBullet,
-                "Your projectiles curve onto the locked target and your shots pass through walls. Enemies' don't. Host or solo.");
+            Aim.MagicBullet = Widgets.Toggle("Magic bullet", Aim.MagicBullet,
+                "Your projectiles turn toward the target and your shots go through walls. Host or solo.");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Weapon Handling");
-            Aim.NoSpread = Widgets.Toggle("No Spread (Perfect Accuracy)", Aim.NoSpread, "Removes bullet and projectile spread on all weapons.");
-            Aim.NoRecoil = Widgets.Toggle("No Recoil (Fixed Camera)", Aim.NoRecoil, "Prevents camera kickback when firing skills.");
+            Widgets.SectionBegin("Weapon");
+            Aim.NoSpread = Widgets.Toggle("No spread", Aim.NoSpread, "Bullets and projectiles go exactly where you aim.");
+            Aim.NoRecoil = Widgets.Toggle("No recoil", Aim.NoRecoil, "The camera doesn't kick when you shoot.");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Visuals");
-            Aim.Highlight = Widgets.Toggle("Highlight Target", Aim.Highlight);
-            Aim.ShowFovCircle = Widgets.Toggle("Show FOV Circle", Aim.ShowFovCircle);
+            Widgets.SectionBegin("On screen");
+            Aim.Highlight = Widgets.Toggle("Mark target", Aim.Highlight, "Shows which enemy the aimbot is locked on.");
+            Aim.ShowFovCircle = Widgets.Toggle("Show FOV circle", Aim.ShowFovCircle);
             Widgets.SectionEnd();
         }
     }

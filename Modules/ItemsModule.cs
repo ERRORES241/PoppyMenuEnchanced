@@ -15,29 +15,29 @@ namespace PoppyMenu
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Give");
-            GiveCount = Widgets.IntStepper("Count", GiveCount, 1, 1, 1000);
+            GiveCount = Widgets.IntStepper("Count", GiveCount, 1, 1, 1000, "How many of each item to give.");
 
-            Widgets.Button("Give Item", () =>
+            Widgets.Button("Give item", () =>
                 ItemPicker.Open("Items", idx => NetUtil.Do(PoppyOp.GiveItem, (int)idx, GiveCount)));
 
-            Widgets.PickerButton("Give Equipment", "Equipment", EquipRows);
-            Widgets.PickerButton("Give Key Item", "Key Items", KeyItemRows);
-            Widgets.Button($"Give All Items (x{GiveCount})", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: GiveCount));
+            Widgets.PickerButton("Give equipment", "Equipment", EquipRows);
+            Widgets.PickerButton("Set key item", "Key items", KeyItemRows);
+            Widgets.Button($"Give all items (x{GiveCount})", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: GiveCount));
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Inventory");
-            Widgets.Button("Stack (Shrine of Order)", () => NetUtil.Do(PoppyOp.StackInventory));
-            Widgets.Button("Reroll Items", () => NetUtil.Do(PoppyOp.RollItems));
-            Widgets.Button("Undo Last Item Change", () => NetUtil.Do(PoppyOp.UndoInventory));
-            NoEquipmentCooldown = Widgets.Toggle("No Equipment Cooldown", NoEquipmentCooldown);
-            Widgets.ConfirmButton("items.clearinv", "Clear Inventory", () => NetUtil.Do(PoppyOp.ClearInventory));
+            Widgets.Button("Stack", "Turns each tier into one item, like a Shrine of Order.", () => NetUtil.Do(PoppyOp.StackInventory));
+            Widgets.Button("Reroll", "Swaps every item for a random one of the same tier.", () => NetUtil.Do(PoppyOp.RollItems));
+            Widgets.Button("Undo", "Reverts the last give all, clear, stack, reroll or key item change.", () => NetUtil.Do(PoppyOp.UndoInventory));
+            NoEquipmentCooldown = Widgets.Toggle("No equipment cooldown", NoEquipmentCooldown);
+            Widgets.ConfirmButton("items.clearinv", "Clear inventory", () => NetUtil.Do(PoppyOp.ClearInventory));
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Sale Star (Выгодная звезда)");
-            SaleStarCheat = Widgets.Toggle("Force Drop Count", SaleStarCheat);
+            Widgets.SectionBegin("Sale Star");
+            SaleStarCheat = Widgets.Toggle("Fixed drop count", SaleStarCheat, "Chests opened with Sale Star drop the number of items set below.");
             if (SaleStarCheat)
             {
-                SaleStarDropCount = Widgets.IntStepper("Drop Count", SaleStarDropCount, 1, 2, 5);
+                SaleStarDropCount = Widgets.IntStepper("Items per chest", SaleStarDropCount, 1, 2, 5);
             }
             Widgets.SectionEnd();
         }
@@ -60,7 +60,7 @@ namespace PoppyMenu
         {
             var rows = new List<ListPicker.Row>
             {
-                new ListPicker.Row("None (remove)", UnityEngine.Color.gray, () => NetUtil.Do(PoppyOp.SetKeyItem, i1: (int)KeyItemIndex.None))
+                new ListPicker.Row("None", UnityEngine.Color.gray, () => NetUtil.Do(PoppyOp.SetKeyItem, i1: (int)KeyItemIndex.None))
             };
             foreach (KeyItemDef def in KeyItemCatalog.allKeyItemDefs)
             {

@@ -43,8 +43,8 @@ namespace PoppyMenu
             Add("menu.disableAll", "Menu", "Disable everything", Cheats.DisableAll);
 
             Add("player.god", "Player", "God mode", () => PlayerModule.GodMode = !PlayerModule.GodMode);
-            Add("player.buddha", "Player", "Semi-Godmode", () => Safety.Buddha = !Safety.Buddha);
-            Add("player.skills", "Player", "Skills No CD", () => PlayerModule.InfiniteSkills = !PlayerModule.InfiniteSkills);
+            Add("player.buddha", "Player", "Semi-god mode", () => Safety.Buddha = !Safety.Buddha);
+            Add("player.skills", "Player", "No skill cooldowns", () => PlayerModule.InfiniteSkills = !PlayerModule.InfiniteSkills);
             Add("player.healFull", "Player", "Heal to full", () => NetUtil.Do(PoppyOp.HealFull));
             Add("player.respawn", "Player", "Respawn", () => NetUtil.Do(PoppyOp.Respawn));
 
@@ -52,9 +52,9 @@ namespace PoppyMenu
             Add("move.noclip", "Movement", "No-clip", MovementModule.ToggleNoClip);
             Add("move.sprint", "Movement", "Always sprint", MovementModule.ToggleSprint);
             Add("move.jump", "Movement", "Jump pack", () => MovementModule.JumpPack = !MovementModule.JumpPack);
-            Add("move.bhop", "Movement", "BunnyHop", () => MovementModule.Bhop = !MovementModule.Bhop);
-            Add("move.tp_ping_auto", "Movement", "Auto teleport on ping", MovementModule.ToggleTeleportToPing);
-            Add("move.tp_ping", "Movement", "Teleport to current ping", MovementModule.TeleportToCurrentPing);
+            Add("move.bhop", "Movement", "Bunny hop", () => MovementModule.Bhop = !MovementModule.Bhop);
+            Add("move.tp_ping_auto", "Movement", "Teleport on ping", MovementModule.ToggleTeleportToPing);
+            Add("move.tp_ping", "Movement", "Teleport to ping", MovementModule.TeleportToCurrentPing);
             Add("move.tp_cursor", "Movement", "Teleport to cursor", MovementModule.TeleportToCursor);
 
             Add("aim.toggle", "Aimbot", "Aimbot", () => Aim.Enabled = !Aim.Enabled);
@@ -69,7 +69,7 @@ namespace PoppyMenu
             Add("combat.killAll", "World", "Kill all enemies", () => NetUtil.Do(PoppyOp.KillAllEnemies));
             Add("combat.noEnemies", "Safety", "No enemies", () => Safety.NoEnemies = !Safety.NoEnemies);
 
-            Add("tp.charge", "Teleporter", "Instant charge (toggle)", () => TeleporterModule.InstaCharge = !TeleporterModule.InstaCharge);
+            Add("tp.charge", "Teleporter", "Instant charge", () => TeleporterModule.InstaCharge = !TeleporterModule.InstaCharge);
             Add("tp.skip", "Teleporter", "Skip stage", () => NetUtil.Do(PoppyOp.SkipStage));
             Add("tp.portals", "Teleporter", "Spawn all portals", () =>
             {
@@ -79,16 +79,16 @@ namespace PoppyMenu
                 NetUtil.Do(PoppyOp.SpawnPortals, f1: pos.x, f2: pos.y, f3: pos.z);
             });
 
-            Add("world.freeze", "World", "Freeze match", () => WorldModule.FreezeMatch = !WorldModule.FreezeMatch);
-            Add("world.freezeTimer", "World", "Freeze run timer", () => WorldModule.FreezeTimer = !WorldModule.FreezeTimer);
+            Add("world.freeze", "World", "Freeze game", () => WorldModule.FreezeMatch = !WorldModule.FreezeMatch);
+            Add("world.freezeTimer", "World", "Freeze timer", () => WorldModule.FreezeTimer = !WorldModule.FreezeTimer);
 
-            Add("esp.enemies", "ESP", "Enemy ESP", () => RenderModule.EspMobs = !RenderModule.EspMobs);
-            Add("esp.interactables", "ESP", "Interactable ESP", () => RenderModule.EspInteractables = !RenderModule.EspInteractables);
-            Add("esp.teleporter", "ESP", "Teleporter & portal ESP", () => RenderModule.EspTeleporter = !RenderModule.EspTeleporter);
+            Add("esp.enemies", "ESP", "Enemies", () => RenderModule.EspMobs = !RenderModule.EspMobs);
+            Add("esp.interactables", "ESP", "Interactables", () => RenderModule.EspInteractables = !RenderModule.EspInteractables);
+            Add("esp.teleporter", "ESP", "Teleporter and portals", () => RenderModule.EspTeleporter = !RenderModule.EspTeleporter);
 
-            Add("fun.instaCharge", "Fun", "Instant Ult Charge", () => FunModule.RailgunnerInstaCharge = !FunModule.RailgunnerInstaCharge);
-            Add("fun.noUltCooldown", "Fun", "No Ult Cooldown", () => FunModule.RailgunnerNoUltCooldown = !FunModule.RailgunnerNoUltCooldown);
-            Add("fun.ultSpam", "Fun", "Ult Spam (Every Shot = Ult)", () => FunModule.RailgunnerUltSpam = !FunModule.RailgunnerUltSpam);
+            Add("fun.instaCharge", "Fun", "Instant ult charge", () => FunModule.RailgunnerInstaCharge = !FunModule.RailgunnerInstaCharge);
+            Add("fun.noUltCooldown", "Fun", "No ult cooldown", () => FunModule.RailgunnerNoUltCooldown = !FunModule.RailgunnerNoUltCooldown);
+            Add("fun.ultSpam", "Fun", "Every shot is an ult", () => FunModule.RailgunnerUltSpam = !FunModule.RailgunnerUltSpam);
 
             Add("macro.midgame", "Macros", "Mid-game loadout", () =>
             {
@@ -96,7 +96,7 @@ namespace PoppyMenu
                 GiveRandom(8, ItemTier.Tier2);
                 GiveRandom(2, ItemTier.Tier3);
                 NetUtil.Do(PoppyOp.GiveMoney, i1: 1000);
-                Notify.Push("Mid-game loadout granted");
+                Notify.Push("Mid-game loadout given");
             });
             Add("macro.lategame", "Macros", "End-game loadout", () =>
             {
@@ -105,14 +105,14 @@ namespace PoppyMenu
                 GiveRandom(8, ItemTier.Tier3);
                 GiveRandom(1, ItemTier.Boss);
                 NetUtil.Do(PoppyOp.GiveMoney, i1: 10000);
-                Notify.Push("End-game loadout granted");
+                Notify.Push("End-game loadout given");
             });
             Add("macro.dtzoom", "Macros", "Zoom items", () =>
             {
                 // Item defs, not localized names: the lookup must work in any game language.
                 NetUtil.Do(PoppyOp.GiveItem, i1: (int)RoR2Content.Items.Hoof.itemIndex, i2: 20);
                 NetUtil.Do(PoppyOp.GiveItem, i1: (int)RoR2Content.Items.Feather.itemIndex, i2: 200);
-                Notify.Push("Zoom items granted");
+                Notify.Push("Zoom items given");
             });
 
             Add("tab.player", "Open tab", "Player tab", () => MenuRoot.SelectTabByName("Player"));

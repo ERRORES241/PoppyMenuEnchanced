@@ -45,6 +45,8 @@
 - Aimbot config defaults now match the code (60 degree cone, 300 m range).
 - Spawn picks the exact spawn card instead of the first one with the same name (snowy and sandy shrine variants, void chests).
 - New menu design: an icon rail for the tabs, a top bar with the page path, search and close, sub-pages as segments, and settings as rows with the description under each name instead of hover tooltips. Counters and their action share one row (for example Money with its Give button).
+- Rewrote the menu labels, descriptions and notifications: shorter, sentence case, and matching what each feature does. Several features are renamed in the menu, keybind list and active list (for example Skills No CD is now No skill cooldowns, Allow Others To Use This is now Let clients use the menu).
+- Menu animations: switches slide, buttons and action rows shrink slightly while pressed, the selected sub-page and tab highlight slide to the new choice, dropdowns and pickers fade in, tooltips appear after a short delay, toasts drop in and slide up as older ones leave. Opening the menu and switching pages stay instant. Settings has Reduce motion, which keeps the fades and drops the sliding and scaling.
 - Three themes in Settings: Midnight, Violet and RoR2 gold. They replace the accent color sliders.
 - The menu scales with the screen height (1080p is 100%) on top of the Menu size multiplier. Text and icons are drawn at the final size, so they stay sharp instead of being stretched.
 - Search box in the top bar finds settings and actions on every tab by name or description. Esc clears it.

@@ -23,6 +23,7 @@ namespace PoppyMenu
 
         internal static ConfigEntry<ThemeKind> MenuTheme;
         internal static ConfigEntry<bool> UiAutoScale;
+        internal static ConfigEntry<bool> ReduceMotion;
 
         internal static ConfigEntry<int> GiveMoneyAmount;
         internal static ConfigEntry<int> GiveXpAmount;
@@ -122,6 +123,7 @@ namespace PoppyMenu
             UiAutoScale = cfg.Bind("General", "UiAutoScale", true, "Scale the menu with the screen height (1080p = 100%).");
             RequireServerForCheats = cfg.Bind("General", "RequireServerForCheats", false, "When true, server-side actions are skipped on non-host clients.");
             AllowClientCheats = cfg.Bind("General", "AllowClientCheats", false, "HOST ONLY: allow other clients to use this menu.");
+            ReduceMotion = cfg.Bind("General", "ReduceMotion", false, "Menu animations fade only: no sliding or scaling.");
             ShowHud = cfg.Bind("General", "ShowActiveEffectsHud", true, "Show a small active-effects HUD when the menu is closed.");
             HudX = cfg.Bind("General", "HudX", 14f, "Remembered HUD X position.");
             HudY = cfg.Bind("General", "HudY", 14f, "Remembered HUD Y position.");

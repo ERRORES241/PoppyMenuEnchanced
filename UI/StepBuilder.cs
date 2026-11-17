@@ -13,9 +13,9 @@ namespace PoppyMenu
 
         internal static void Draw(Action<CustomStep> onAdd)
         {
-            _amount = Widgets.IntStepper("Count / amount", _amount, 1, 1, 1000000000);
-            _duration = Widgets.Slider("Buff duration", _duration, 0f, 120f, "0 means permanent.", "0 s");
-            _ally = Widgets.Toggle("Spawn as ally (your team)", _ally);
+            _amount = Widgets.IntStepper("Amount", _amount, 1, 1, 1000000000);
+            _duration = Widgets.Slider("Buff duration", _duration, 0f, 120f, "0 = permanent.", "0 s");
+            _ally = Widgets.Toggle("Spawn on your team", _ally);
 
             Widgets.ButtonGrid(
                 ("Item", () => ItemPicker.Open("Pick an item", idx => Done(onAdd, Steps.Item((int)idx, _amount)))),

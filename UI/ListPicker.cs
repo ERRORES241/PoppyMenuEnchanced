@@ -27,6 +27,7 @@ namespace PoppyMenu
         private static Vector2 _size = new Vector2(380, 560);
         private static Rect _screenRect;
         private static bool _resizing;
+        private static float _openedAt;
 
         internal static bool IsOpen => _open;
 
@@ -36,6 +37,7 @@ namespace PoppyMenu
             _rows   = rows ?? new List<Row>();
             _search = "";
             _scroll = Vector2.zero;
+            if (!_open) _openedAt = Anim.Now; // switching lists inside an open picker doesn't replay it
             _open   = true;
             _focusSearch = true;
         }
@@ -54,7 +56,20 @@ namespace PoppyMenu
             _pos = GUI.Window(WindowId, _screenRect, DrawWindow, "", GUIStyle.none).position;
         }
 
+        // Opens with a 200 ms fade and grows from 96% around its centre (it isn't anchored to the row
+        // that opened it). Closing is instant: Esc and the close button are dismissals.
         private static void DrawWindow(int id)
+        {
+            float a = Anim.Progress(_openedAt, Anim.Popup, Anim.EaseOut);
+            if (a >= 1f) { DrawBody(); return; }
+            Color prev = GUI.color;
+            GUI.color = Anim.Alpha(prev, a);
+            Matrix4x4 saved = Anim.Begin(new Vector2(_screenRect.width * 0.5f, _screenRect.height * 0.5f), Anim.Reduce ? 1f : Mathf.Lerp(0.96f, 1f, a));
+            try { DrawBody(); }
+            finally { Anim.End(saved); GUI.color = prev; }
+        }
+
+        private static void DrawBody()
         {
             float W = _screenRect.width, H = _screenRect.height;
             Theme.Box(new Rect(0, 0, W, H), Theme.WindowBg);
@@ -142,7 +157,7 @@ namespace PoppyMenu
             if (Event.current.type == EventType.Repaint)
             {
                 Theme.Fill(new Rect(0, H - footH, W, Mathf.Max(1f, Theme.S(1))), Theme.Line);
-                string foot = matched == 0 ? "No matches" : matched + " of " + _rows.Count;
+                string foot = matched == 0 ? "No results" : matched + " of " + _rows.Count;
                 GUI.Label(new Rect(pad, H - footH, W - pad * 2f, footH), foot + "   ·   Esc to close", Theme.Small);
             }
 

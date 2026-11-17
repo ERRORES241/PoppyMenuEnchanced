@@ -18,22 +18,22 @@ namespace PoppyMenu
 
             Run run = Run.instance;
 
-            Widgets.SectionBegin("Run State");
+            Widgets.SectionBegin("Run");
             Widgets.Value("Stage", (run.stageClearCount + 1).ToString());
             Widgets.Value("Run time", FormatClock(run.GetRunStopwatch()));
             Widgets.Value("Difficulty", run.difficultyCoefficient.ToString("0.0"));
 
             _stages = Widgets.StepperAction("Stages cleared", _stages, 1, 0, 200, "Set", v => NetUtil.Do(PoppyOp.SetStagesCleared, i1: v));
             _minutes = Widgets.StepperAction("Run time (minutes)", _minutes, 1, 0, 600, "Set", v => NetUtil.Do(PoppyOp.SetRunTime, f1: v * 60f),
-                "Run time drives difficulty. Freeze it under World > Time to lock it.");
+                "Difficulty grows with run time. To stop the clock, use Freeze timer on the World page.");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Team Level");
-            _teamLevel = Widgets.StepperAction("Player team level", _teamLevel, 1, 1, 99999, "Set",
+            Widgets.SectionBegin("Level");
+            _teamLevel = Widgets.StepperAction("Team level", _teamLevel, 1, 1, 99999, "Set",
                 v => NetUtil.Do(PoppyOp.SetTeamLevel, i1: (int)TeamIndex.Player, i2: v));
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Change Stage");
+            Widgets.SectionBegin("Stage");
             Widgets.PickerButton("Go to scene", "Scenes", SceneRows);
             Widgets.SectionEnd();
 
@@ -76,7 +76,7 @@ namespace PoppyMenu
             Widgets.SectionBegin("Artifacts");
             ArtifactDef[] defs = ArtifactCatalog.artifactDefs;
             RunArtifactManager mgr = RunArtifactManager.instance;
-            if (defs == null || mgr == null) { Widgets.Note("Artifacts aren't available right now."); Widgets.SectionEnd(); return; }
+            if (defs == null || mgr == null) { Widgets.Note("Not available right now."); Widgets.SectionEnd(); return; }
 
             foreach (ArtifactDef def in defs)
             {

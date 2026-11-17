@@ -62,8 +62,7 @@ namespace PoppyMenu
 
             ListPicker.Draw();
 
-            if (Visible && !string.IsNullOrEmpty(Widgets.CurrentTooltip))
-                DrawTooltip();
+            if (Visible) UpdateTooltip();
 
             if (Event.current.type == EventType.Repaint)
             {
@@ -160,13 +159,18 @@ namespace PoppyMenu
 
             float y = logo.yMax + Theme.S(14);
             Vector2 m = Event.current.mousePosition;
+            bool searching = !string.IsNullOrEmpty(_search);
+
+            // The active highlight slides to the new tab over 200 ms; the page itself switches at once.
+            float hy = Anim.To("rail", ActiveTab, Anim.Slide, Anim.EaseInOut, Anim.Reduce || searching);
+            if (!searching) Theme.Rounded(new Rect(Theme.S(10), Mathf.Round(y + hy * Theme.S(44)), Theme.S(40), Theme.S(40)), 10f, Theme.AccentSoft);
+
             for (int i = 0; i < _groups.Count; i++)
             {
                 Rect r = new Rect(Theme.S(10), y, Theme.S(40), Theme.S(40));
-                bool active = i == ActiveTab && string.IsNullOrEmpty(_search);
+                bool active = i == ActiveTab && !searching;
                 bool hover = r.Contains(m);
-                if (active) Theme.Rounded(r, 10f, Theme.AccentSoft);
-                else if (hover) Theme.Rounded(r, 10f, Theme.RowHover);
+                if (!active && hover && Mathf.Abs(hy - i) > 0.5f) Theme.Rounded(r, 10f, Theme.RowHover);
                 if (!TabIcons.TryGetValue(_groups[i].Name, out string icon)) icon = Icons.Sparkles;
                 Icons.DrawCentered(r, icon, 20, active ? Theme.Accent : hover ? Theme.Text : Theme.Faint);
                 Widgets.Tooltip(r, _groups[i].Name);
@@ -231,7 +235,7 @@ namespace PoppyMenu
             if (next != _search) { _search = next; _scroll = Vector2.zero; }
             Icons.Draw(new Rect(search.x + Theme.S(10), search.y + (bh - Theme.S(14)) * 0.5f, Theme.S(14), Theme.S(14)), Icons.Search, Theme.Faint);
             if (string.IsNullOrEmpty(_search) && !focused)
-                GUI.Label(new Rect(search.x + Theme.S(30), search.y, search.width - Theme.S(36), bh), "Search features", Theme.Placeholder);
+                GUI.Label(new Rect(search.x + Theme.S(30), search.y, search.width - Theme.S(36), bh), "Search", Theme.Placeholder);
 
             if (Event.current.type == EventType.Repaint)
                 Theme.Fill(new Rect(x0, th - 1f, W - x0, Mathf.Max(1f, Theme.S(1))), Theme.Line);
@@ -254,7 +258,7 @@ namespace PoppyMenu
             float w = Theme.S(6);
             foreach (float f in widths) w += f;
             Rect bar = new Rect(x0 + Theme.S(20), top + Theme.S(12), w, Theme.S(32));
-            int page = Widgets.SegmentedBar(bar, group.Page, names, widths);
+            int page = Widgets.SegmentedBar(bar, group.Page, names, widths, "pages:" + group.Name);
             if (page != group.Page) { group.Page = page; _scroll = Vector2.zero; }
             return bar.yMax + Theme.S(4);
         }
@@ -276,7 +280,7 @@ namespace PoppyMenu
                 if (Widgets.Matches == 0)
                 {
                     GUILayout.Space(Theme.S(16));
-                    GUILayout.Label("Nothing matches \"" + Widgets.Filter + "\".", Theme.Desc);
+                    GUILayout.Label("No results for \"" + Widgets.Filter + "\".", Theme.Desc);
                 }
             }
             else
@@ -308,7 +312,7 @@ namespace PoppyMenu
             catch (System.Exception e)
             {
                 Widgets.EndPage();
-                GUILayout.Label("This tab hit an error, see console.", Theme.Label);
+                GUILayout.Label("This page failed to draw. See the BepInEx log.", Theme.Label);
                 Log.Error($"{page.Name}.DrawMenu: {e}");
             }
         }
@@ -335,7 +339,7 @@ namespace PoppyMenu
             float kx = right - hw - Theme.S(6) - kw;
             Theme.Kbd.Draw(new Rect(kx, y + (fh - Theme.S(18)) * 0.5f, kw, Theme.S(18)), new GUIContent(key), false, false, false, false);
 
-            string status = fx.Count > 0 ? fx.Count + " active: " + string.Join(", ", fx) : "Idle";
+            string status = fx.Count > 0 ? fx.Count + " on: " + string.Join(", ", fx) : "Nothing on";
             float sx = x + dot + Theme.S(8);
             GUI.Label(new Rect(sx, y, kx - Theme.S(12) - sx, fh), status, Theme.Small);
         }
@@ -355,7 +359,37 @@ namespace PoppyMenu
 
         /* ─────── Tooltip ───────────────────────────────────────────── */
 
-        private static void DrawTooltip()
+        // First tooltip waits 400 ms, then fades in over 125 ms. Moving to a neighbour within 300 ms
+        // of the last one shows it at once with no fade, so sweeping across the rail stays quick.
+        private const float TipDelay = 0.4f, TipGrace = 0.3f;
+        private static string _tipText;
+        private static float _tipHoverAt, _tipShownAt, _tipHiddenAt = -10f;
+        private static bool _tipShown, _tipInstant;
+
+        private static void UpdateTooltip()
+        {
+            string text = Widgets.CurrentTooltip;
+            float now = Anim.Now;
+            if (text != _tipText)
+            {
+                if (_tipShown) _tipHiddenAt = now;
+                _tipText = text;
+                _tipShown = false;
+                _tipHoverAt = now;
+                _tipInstant = now - _tipHiddenAt < TipGrace;
+            }
+            if (string.IsNullOrEmpty(text)) return;
+            if (!_tipShown && (_tipInstant || now - _tipHoverAt >= TipDelay))
+            {
+                _tipShown = true;
+                _tipShownAt = now;
+            }
+            if (!_tipShown) return;
+            _tipHiddenAt = now; // still visible: the grace period counts from the last frame it was up
+            DrawTooltip(_tipInstant ? 1f : Anim.Progress(_tipShownAt, Anim.Tooltip, Anim.EaseOut));
+        }
+
+        private static void DrawTooltip(float a)
         {
             var content = new GUIContent(Widgets.CurrentTooltip);
             Vector2 size = Theme.TipBg.CalcSize(content);
@@ -366,9 +400,16 @@ namespace PoppyMenu
             if (x + w > Screen.width) x = mouse.x - w - Theme.S(8);
             if (y + h > Screen.height) y = mouse.y - h - Theme.S(8);
 
+            bool left = x < mouse.x, up = y < mouse.y;
             GUI.Window(WindowId + 1, new Rect(x, y, w, h), _ =>
             {
+                // Grows from 97% out of the corner next to the cursor.
+                Color prev = GUI.color;
+                GUI.color = Anim.Alpha(prev, a);
+                Matrix4x4 saved = Anim.Begin(new Vector2(left ? w : 0f, up ? h : 0f), Anim.Reduce ? 1f : Mathf.Lerp(0.97f, 1f, a));
                 GUI.Label(new Rect(0, 0, w, h), Widgets.CurrentTooltip, Theme.TipBg);
+                Anim.End(saved);
+                GUI.color = prev;
             }, "", GUIStyle.none);
             GUI.BringWindowToFront(WindowId + 1);
         }
@@ -447,29 +488,29 @@ namespace PoppyMenu
             _nextActiveCheck = Time.realtimeSinceStartup + 0.2f;
             _cachedActiveList.Clear();
 
-            if (PlayerModule.GodMode)         _cachedActiveList.Add("God Mode");
-            if (Safety.Buddha)                _cachedActiveList.Add("Semi-Godmode");
-            if (PlayerModule.InfiniteSkills)  _cachedActiveList.Add("Skills No CD");
+            if (PlayerModule.GodMode)         _cachedActiveList.Add("God mode");
+            if (Safety.Buddha)                _cachedActiveList.Add("Semi-god mode");
+            if (PlayerModule.InfiniteSkills)  _cachedActiveList.Add("No skill cooldowns");
             if (Aim.Enabled)                   _cachedActiveList.Add("Aimbot");
             if (Aim.MagicBullet)               _cachedActiveList.Add("Magic Bullet");
             if (MovementModule.Flight)         _cachedActiveList.Add("Flight");
             if (MovementModule.NoClip)         _cachedActiveList.Add("No-Clip");
-            if (MovementModule.AlwaysSprint)   _cachedActiveList.Add("Always Sprint");
-            if (MovementModule.JumpPack)       _cachedActiveList.Add("Jump Pack");
-            if (MovementModule.Bhop)           _cachedActiveList.Add("BunnyHop");
-            if (MovementModule.TeleportToPing) _cachedActiveList.Add("TP to Ping");
-            if (FunModule.RailgunnerInstaCharge) _cachedActiveList.Add("Insta Ult Charge");
-            if (FunModule.RailgunnerNoUltCooldown) _cachedActiveList.Add("No Ult Cooldown");
-            if (FunModule.RailgunnerUltSpam)    _cachedActiveList.Add("Ult Spam");
-            if (StatsModule.Active)            _cachedActiveList.Add("Stat Mods");
-            if (ItemsModule.NoEquipmentCooldown) _cachedActiveList.Add("No Equip CD");
-            if (TeleporterModule.InstaCharge)  _cachedActiveList.Add("Instant TP Charge");
+            if (MovementModule.AlwaysSprint)   _cachedActiveList.Add("Always sprint");
+            if (MovementModule.JumpPack)       _cachedActiveList.Add("Jump pack");
+            if (MovementModule.Bhop)           _cachedActiveList.Add("Bunny hop");
+            if (MovementModule.TeleportToPing) _cachedActiveList.Add("Teleport on ping");
+            if (FunModule.RailgunnerInstaCharge) _cachedActiveList.Add("Instant ult charge");
+            if (FunModule.RailgunnerNoUltCooldown) _cachedActiveList.Add("No ult cooldown");
+            if (FunModule.RailgunnerUltSpam)    _cachedActiveList.Add("Every shot is an ult");
+            if (StatsModule.Active)            _cachedActiveList.Add("Stat modifiers");
+            if (ItemsModule.NoEquipmentCooldown) _cachedActiveList.Add("No equipment cooldown");
+            if (TeleporterModule.InstaCharge)  _cachedActiveList.Add("Instant charge");
             if (RenderModule.EspMobs || RenderModule.EspInteractables || RenderModule.EspTeleporter)
                 _cachedActiveList.Add("ESP");
-            if (WorldModule.FreezeMatch)       _cachedActiveList.Add("Match Frozen");
-            if (WorldModule.FreezeTimer)       _cachedActiveList.Add("Timer Frozen");
+            if (WorldModule.FreezeMatch)       _cachedActiveList.Add("Game frozen");
+            if (WorldModule.FreezeTimer)       _cachedActiveList.Add("Timer frozen");
             if (System.Math.Abs(WorldModule.TimeScale - 1f) > 0.001f && !WorldModule.FreezeMatch)
-                _cachedActiveList.Add($"Time {WorldModule.TimeScale:0.##}x");
+                _cachedActiveList.Add($"Speed {WorldModule.TimeScale:0.##}x");
 
             return _cachedActiveList;
         }
