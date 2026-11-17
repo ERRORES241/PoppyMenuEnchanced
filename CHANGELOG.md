@@ -44,6 +44,15 @@
 - ESP labels support the Quality mod: the quality icon tag in item names is shown as (Uncommon), (Rare), (Epic) or (Legendary) instead of raw markup, and other text markup is removed.
 - Aimbot config defaults now match the code (60 degree cone, 300 m range).
 - Spawn picks the exact spawn card instead of the first one with the same name (snowy and sandy shrine variants, void chests).
+- New menu design: an icon rail for the tabs, a top bar with the page path, search and close, sub-pages as segments, and settings as rows with the description under each name instead of hover tooltips. Counters and their action share one row (for example Money with its Give button).
+- Three themes in Settings: Midnight, Violet and RoR2 gold. They replace the accent color sliders.
+- The menu scales with the screen height (1080p is 100%) on top of the Menu size multiplier. Text and icons are drawn at the final size, so they stay sharp instead of being stretched.
+- Search box in the top bar finds settings and actions on every tab by name or description. Esc clears it.
+- Uses the Segoe UI system font when available and Lucide icons (ISC license, see THIRD_PARTY_NOTICES.md).
+- Item, buff and spawn pickers draw only the visible rows, so long lists scroll smoothly, and the search field is focused when a picker opens.
+- Stat multiplier sliders show only while their toggle is on.
+- Aimbot priority is picked from a dropdown list. Action rows end with a run button instead of an arrow; rows that open a list keep the arrow.
+- The aimbot FOV circle is drawn with more, anti-aliased segments that meet without overlapping, so it no longer looks jagged.
 
 ## 2.6.0
 - Added Teleport to Ping (auto-teleport on ping, teleport to active ping, and teleport to cursor).

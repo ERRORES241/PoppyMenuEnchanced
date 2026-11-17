@@ -14,28 +14,27 @@ namespace PoppyMenu
 
         internal override void DrawMenu()
         {
-            if (!PlayerContext.InGame || Run.instance == null) { Widgets.Label("Start a run first."); return; }
+            if (!PlayerContext.InGame || Run.instance == null) { Widgets.EmptyState("Start a run first."); return; }
 
             Run run = Run.instance;
 
             Widgets.SectionBegin("Run State");
-            Widgets.Label($"Stage {run.stageClearCount + 1}   ·   {FormatClock(run.GetRunStopwatch())}   ·   difficulty {run.difficultyCoefficient:0.0}");
+            Widgets.Value("Stage", (run.stageClearCount + 1).ToString());
+            Widgets.Value("Run time", FormatClock(run.GetRunStopwatch()));
+            Widgets.Value("Difficulty", run.difficultyCoefficient.ToString("0.0"));
 
-            _stages = Widgets.IntStepper("Stages cleared", _stages, 1, 0, 200);
-            Widgets.Button("Set stages cleared", () => NetUtil.Do(PoppyOp.SetStagesCleared, i1: _stages));
-
-            _minutes = Widgets.IntStepper("Run time (minutes)", _minutes, 1, 0, 600);
-            Widgets.Button("Set run time", () => NetUtil.Do(PoppyOp.SetRunTime, f1: _minutes * 60f));
-            Widgets.Hint("Run time drives difficulty. Freeze it under World > Time to lock it.");
+            _stages = Widgets.StepperAction("Stages cleared", _stages, 1, 0, 200, "Set", v => NetUtil.Do(PoppyOp.SetStagesCleared, i1: v));
+            _minutes = Widgets.StepperAction("Run time (minutes)", _minutes, 1, 0, 600, "Set", v => NetUtil.Do(PoppyOp.SetRunTime, f1: v * 60f),
+                "Run time drives difficulty. Freeze it under World > Time to lock it.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Team Level");
-            _teamLevel = Widgets.IntStepper("Player team level", _teamLevel, 1, 1, 99999);
-            Widgets.Button("Set team level", () => NetUtil.Do(PoppyOp.SetTeamLevel, i1: (int)TeamIndex.Player, i2: _teamLevel));
+            _teamLevel = Widgets.StepperAction("Player team level", _teamLevel, 1, 1, 99999, "Set",
+                v => NetUtil.Do(PoppyOp.SetTeamLevel, i1: (int)TeamIndex.Player, i2: v));
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Change Stage");
-            Widgets.PickerButton("Go to scene...", "Scenes", SceneRows);
+            Widgets.PickerButton("Go to scene", "Scenes", SceneRows);
             Widgets.SectionEnd();
 
             DrawArtifacts();
@@ -77,7 +76,7 @@ namespace PoppyMenu
             Widgets.SectionBegin("Artifacts");
             ArtifactDef[] defs = ArtifactCatalog.artifactDefs;
             RunArtifactManager mgr = RunArtifactManager.instance;
-            if (defs == null || mgr == null) { Widgets.Hint("Artifacts aren't available right now."); Widgets.SectionEnd(); return; }
+            if (defs == null || mgr == null) { Widgets.Note("Artifacts aren't available right now."); Widgets.SectionEnd(); return; }
 
             foreach (ArtifactDef def in defs)
             {

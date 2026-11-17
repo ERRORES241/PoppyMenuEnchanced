@@ -21,9 +21,8 @@ namespace PoppyMenu
 
         internal static ConfigEntry<KeyCode> SilentAimKey;
 
-        internal static ConfigEntry<float> AccentR;
-        internal static ConfigEntry<float> AccentG;
-        internal static ConfigEntry<float> AccentB;
+        internal static ConfigEntry<ThemeKind> MenuTheme;
+        internal static ConfigEntry<bool> UiAutoScale;
 
         internal static ConfigEntry<int> GiveMoneyAmount;
         internal static ConfigEntry<int> GiveXpAmount;
@@ -119,7 +118,8 @@ namespace PoppyMenu
             _cfg = cfg;
 
             ToggleMenuKey = cfg.Bind("General", "ToggleMenuKey", KeyCode.Insert, "Opens/closes the Poppy menu.");
-            UiScale = cfg.Bind("General", "UiScale", 1.0f, new ConfigDescription("Menu scale.", new AcceptableValueRange<float>(0.6f, 2.0f)));
+            UiScale = cfg.Bind("General", "UiScale", 1.0f, new ConfigDescription("Menu scale multiplier, applied on top of the automatic scale.", new AcceptableValueRange<float>(0.6f, 2.0f)));
+            UiAutoScale = cfg.Bind("General", "UiAutoScale", true, "Scale the menu with the screen height (1080p = 100%).");
             RequireServerForCheats = cfg.Bind("General", "RequireServerForCheats", false, "When true, server-side actions are skipped on non-host clients.");
             AllowClientCheats = cfg.Bind("General", "AllowClientCheats", false, "HOST ONLY: allow other clients to use this menu.");
             ShowHud = cfg.Bind("General", "ShowActiveEffectsHud", true, "Show a small active-effects HUD when the menu is closed.");
@@ -127,15 +127,12 @@ namespace PoppyMenu
             HudY = cfg.Bind("General", "HudY", 14f, "Remembered HUD Y position.");
             WindowX = cfg.Bind("General", "WindowX", 40f, "Remembered menu window X position.");
             WindowY = cfg.Bind("General", "WindowY", 60f, "Remembered menu window Y position.");
-            WindowW = cfg.Bind("General", "WindowW", 540f, "Remembered menu window width.");
-            WindowH = cfg.Bind("General", "WindowH", 600f, "Remembered menu window height.");
+            WindowW = cfg.Bind("General", "WindowW", 640f, "Remembered menu window width (before scaling).");
+            WindowH = cfg.Bind("General", "WindowH", 560f, "Remembered menu window height (before scaling).");
 
             SilentAimKey = cfg.Bind("Hotkeys", "SilentAimHoldKey", KeyCode.None, "Hold-to-aim key.");
 
-            AccentR = cfg.Bind("Theme", "AccentR", 0.898f, "Menu accent color, red channel.");
-            AccentG = cfg.Bind("Theme", "AccentG", 0.219f, "Menu accent color, green channel.");
-            AccentB = cfg.Bind("Theme", "AccentB", 0.290f, "Menu accent color, blue channel.");
-            Theme.ApplyAccent(new Color(AccentR.Value, AccentG.Value, AccentB.Value));
+            MenuTheme = cfg.Bind("Theme", "MenuTheme", ThemeKind.Midnight, "Menu colour theme: Midnight, Violet or Ror2Gold.");
 
             GiveMoneyAmount = cfg.Bind("Tunables", "GiveMoneyAmount", 1000, "Gold granted per click.");
             GiveXpAmount = cfg.Bind("Tunables", "GiveXpAmount", 100, "XP granted per click.");

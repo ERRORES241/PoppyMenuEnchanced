@@ -6,7 +6,7 @@ A personal project, open source under the MIT license. Pull requests and ideas a
 
 ## Features
 
-Organized into clean top-level tabs and focused sub-pages.
+Organized into tabs on an icon rail, each with focused sub-pages. Every setting is a row with a short description under its name, and the search box in the top bar finds any setting or action across all tabs. Three themes (Midnight, Violet, RoR2 gold), and the menu scales with your screen resolution.
 
 ### Aimbot
 - Silent aim that hits the target closest to your crosshair on any survivor without moving your camera (works on hitscan and projectiles).
@@ -56,13 +56,14 @@ Dedicated survivor-specific utilities and mechanics:
 - **Ult Spam (Railgunner):** Converts primary M1 (LMB) attacks into Supercharge ultimate bullets for continuous un-scoped ultimate firing.
 
 ### Settings & Configuration
-- **Settings:** Menu keybind, UI scale, host permission toggles, accent color, catalog refresh, and window reset.
+- **Settings:** Menu keybind, theme, automatic resolution scaling plus a size multiplier, active-effects HUD, host permission toggles, catalog refresh, and window reset.
 - **Keybinds:** Map menu actions, toggles, or macros to keyboard and mouse buttons (including side mouse buttons).
 - **Presets & Macros:** Save toggle profiles, export/import preset codes, and build custom multi-action execution chains bound to single hotkeys.
 
 ## Controls
 - Default menu key: `Insert` (rebindable in Settings or Keybinds).
 - Click and drag title bars to move windows; drag bottom-right handles to resize.
+- Type in the search box to find a setting on any tab; Esc clears it.
 
 ## Multiplayer
 Host permissions apply by default. Server-side changes (items, spawns, match freeze) require host privileges or solo play. Visual and client-side movement features operate locally.
@@ -77,3 +78,4 @@ Poppy Menu is maintained by Poppy.
 Based on code and architecture from Umbra Menu (Aquatic Labs), Spektre Menu (BennettStaley), and Lodington's fork.
 Inspired by DebugToolkit (harbingerofme) and Aerolt (Lodington).
 Decompiled game code analysis made possible with **JetBrains dotPeek**.
+Menu icons from [Lucide](https://lucide.dev) (ISC license, see `THIRD_PARTY_NOTICES.md`).

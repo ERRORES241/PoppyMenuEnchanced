@@ -10,19 +10,21 @@ namespace PoppyMenu
 
         private static int _hurt = 100;
         private static int _giveCount = 1;
+        private static string _banArmed;
 
         internal override void DrawMenu()
         {
-            if (!PlayerContext.InGame) { Widgets.Label("Start a run first."); return; }
+            if (!PlayerContext.InGame) { Widgets.EmptyState("Start a run first."); return; }
 
             var users = NetworkUser.readOnlyInstancesList;
-            if (users == null || users.Count == 0) { Widgets.Label("No players in the lobby."); return; }
+            if (users == null || users.Count == 0) { Widgets.EmptyState("No players in the lobby."); return; }
 
+            Widgets.SectionBegin("Options");
             if (!NetUtil.IsServer)
-                Widgets.Hint("You're a client, so these go to the host and only apply if the host turned on \"Allow Others To Use This\".");
-
+                Widgets.Note("You're a client, so these go to the host and only apply if the host turned on \"Allow Others To Use This\".");
             _hurt = Widgets.IntStepper("Hurt amount", _hurt, 50, 1, 1000000000);
             _giveCount = Widgets.IntStepper("Give item count", _giveCount, 1, 1, 100);
+            Widgets.SectionEnd();
 
             foreach (NetworkUser user in users)
                 if (user != null) DrawPlayer(user);
@@ -43,42 +45,44 @@ namespace PoppyMenu
 
             if (!isLocal && NetUtil.IsServer)
             {
-                GUILayout.BeginHorizontal();
-                Widgets.Button("Kick", () => NetUtil.KickUser(user));
-                Widgets.ConfirmButton("players.ban." + user.userName, "Ban", () => NetUtil.BanUser(user));
-                GUILayout.EndHorizontal();
+                string banId = "players.ban." + user.userName;
+                bool armed = _banArmed == banId;
+                Widgets.Buttons("Moderation", armed ? "Click Confirm ban to ban this player." : null,
+                    ("Kick", () => NetUtil.KickUser(user)),
+                    (armed ? "Confirm ban" : "Ban", () =>
+                    {
+                        if (armed) { _banArmed = null; NetUtil.BanUser(user); }
+                        else _banArmed = banId;
+                    }));
             }
 
             if (master == null) { Widgets.SectionEnd(); return; }
 
-            GUILayout.BeginHorizontal();
-            Widgets.Button("Heal", () => NetUtil.DoFor(master, PoppyOp.HealFull));
-            Widgets.Button("Hurt " + _hurt, () => NetUtil.DoFor(master, PoppyOp.HurtBody, f1: _hurt));
-            Widgets.Button("Kill", () => NetUtil.DoFor(master, PoppyOp.TrueKillTarget));
-            GUILayout.EndHorizontal();
+            Widgets.Buttons("Health", null,
+                ("Heal", () => NetUtil.DoFor(master, PoppyOp.HealFull)),
+                ("Hurt " + _hurt, () => NetUtil.DoFor(master, PoppyOp.HurtBody, f1: _hurt)),
+                ("Kill", () => NetUtil.DoFor(master, PoppyOp.TrueKillTarget)));
 
             if (!isLocal)
             {
-                GUILayout.BeginHorizontal();
-                Widgets.Button("Bring to me", () =>
-                {
-                    Vector3 p = MyPos();
-                    NetUtil.DoFor(master, PoppyOp.TeleportBody, f1: p.x, f2: p.y, f3: p.z);
-                });
-                Widgets.Button("Go to them", () =>
-                {
-                    CharacterBody b = master.GetBody();
-                    Vector3 p = b != null ? b.footPosition : MyPos();
-                    NetUtil.DoFor(PlayerContext.Master, PoppyOp.TeleportBody, f1: p.x, f2: p.y, f3: p.z);
-                });
-                GUILayout.EndHorizontal();
+                Widgets.Buttons("Teleport", null,
+                    ("Bring to me", () =>
+                    {
+                        Vector3 p = MyPos();
+                        NetUtil.DoFor(master, PoppyOp.TeleportBody, f1: p.x, f2: p.y, f3: p.z);
+                    }),
+                    ("Go to them", () =>
+                    {
+                        CharacterBody b = master.GetBody();
+                        Vector3 p = b != null ? b.footPosition : MyPos();
+                        NetUtil.DoFor(PlayerContext.Master, PoppyOp.TeleportBody, f1: p.x, f2: p.y, f3: p.z);
+                    }));
             }
 
-            GUILayout.BeginHorizontal();
-            Widgets.Button("Team: Players", () => NetUtil.DoFor(master, PoppyOp.SetTeam, i1: (int)TeamIndex.Player));
-            Widgets.Button("Monsters", () => NetUtil.DoFor(master, PoppyOp.SetTeam, i1: (int)TeamIndex.Monster));
-            Widgets.Button("Neutral", () => NetUtil.DoFor(master, PoppyOp.SetTeam, i1: (int)TeamIndex.Neutral));
-            GUILayout.EndHorizontal();
+            Widgets.Buttons("Team", null,
+                ("Players", () => NetUtil.DoFor(master, PoppyOp.SetTeam, i1: (int)TeamIndex.Player)),
+                ("Monsters", () => NetUtil.DoFor(master, PoppyOp.SetTeam, i1: (int)TeamIndex.Monster)),
+                ("Neutral", () => NetUtil.DoFor(master, PoppyOp.SetTeam, i1: (int)TeamIndex.Neutral)));
 
             CharacterMaster target = master;
             Widgets.Button("Give item", () =>

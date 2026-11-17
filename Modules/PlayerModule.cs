@@ -41,35 +41,31 @@ namespace PoppyMenu
         {
             Widgets.SectionBegin("Survival");
             GodMode = Widgets.Toggle("God Mode", GodMode);
-            Safety.Buddha = Widgets.Toggle("Semi-Godmode (survive lethal hits at 1 HP)", Safety.Buddha);
+            Safety.Buddha = Widgets.Toggle("Semi-Godmode", Safety.Buddha, "Survive lethal hits at 1 HP.");
             InfiniteSkills = Widgets.Toggle("Skills No CD", InfiniteSkills);
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Health");
-            Widgets.Button("Heal to Full", () => NetUtil.Do(PoppyOp.HealFull));
-            GUILayout.BeginHorizontal();
-            Widgets.Button("Heal " + _heal, () => NetUtil.Do(PoppyOp.HealAmount, f1: _heal));
-            Widgets.Button("Hurt " + _hurt, () => NetUtil.Do(PoppyOp.HurtBody, f1: _hurt));
-            GUILayout.EndHorizontal();
-            _heal = Widgets.IntStepper("Heal amount", _heal, 100, 1, 1000000000);
-            _hurt = Widgets.IntStepper("Hurt amount", _hurt, 50, 1, 1000000000);
+            Widgets.PrimaryButton("Heal to Full", () => NetUtil.Do(PoppyOp.HealFull));
+            _heal = Widgets.StepperAction("Heal amount", _heal, 100, 1, 1000000000, "Heal", v => NetUtil.Do(PoppyOp.HealAmount, f1: v));
+            _hurt = Widgets.StepperAction("Hurt amount", _hurt, 50, 1, 1000000000, "Hurt", v => NetUtil.Do(PoppyOp.HurtBody, f1: v));
             Widgets.Button("Respawn", () => NetUtil.Do(PoppyOp.Respawn));
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Economy");
-            ModConfig.GiveMoneyAmount.Value = Widgets.IntStepper("Money", ModConfig.GiveMoneyAmount.Value, 1000, 0, 1000000000);
-            Widgets.Button("Give Money", () => NetUtil.Do(PoppyOp.GiveMoney, i1: ModConfig.GiveMoneyAmount.Value));
-            ModConfig.GiveXpAmount.Value = Widgets.IntStepper("XP", ModConfig.GiveXpAmount.Value, 100, 0, 1000000000);
-            Widgets.Button("Give XP", () => NetUtil.Do(PoppyOp.GiveXp, i1: ModConfig.GiveXpAmount.Value));
-            ModConfig.GiveCoinsAmount.Value = Widgets.IntStepper("Coins", ModConfig.GiveCoinsAmount.Value, 5, 0, 100000);
-            Widgets.Button("Give Lunar Coins", () => NetUtil.Do(PoppyOp.GiveLunar, i1: ModConfig.GiveCoinsAmount.Value));
+            ModConfig.GiveMoneyAmount.Value = Widgets.StepperAction("Money", ModConfig.GiveMoneyAmount.Value, 1000, 0, 1000000000, "Give",
+                v => NetUtil.Do(PoppyOp.GiveMoney, i1: v));
+            ModConfig.GiveXpAmount.Value = Widgets.StepperAction("Experience", ModConfig.GiveXpAmount.Value, 100, 0, 1000000000, "Give",
+                v => NetUtil.Do(PoppyOp.GiveXp, i1: v));
+            ModConfig.GiveCoinsAmount.Value = Widgets.StepperAction("Lunar Coins", ModConfig.GiveCoinsAmount.Value, 5, 0, 100000, "Give",
+                v => NetUtil.Do(PoppyOp.GiveLunar, i1: v));
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Buffs & DoTs");
-            _buffDuration = Widgets.Slider("Buff duration (0 = permanent)", _buffDuration, 0f, 60f);
-            Widgets.PickerButton("Give Buff...", "Buffs", BuffRows);
-            Widgets.Button("Remove All Buffs", () => NetUtil.Do(PoppyOp.RemoveAllBuffs));
-            Widgets.PickerButton("Inflict DoT...", "Damage over time", DotRows);
+            _buffDuration = Widgets.Slider("Buff duration", _buffDuration, 0f, 60f, "0 means permanent.", "0 s");
+            Widgets.PickerButton("Give Buff", "Buffs", BuffRows);
+            Widgets.PickerButton("Inflict DoT", "Damage over time", DotRows);
+            Widgets.DangerButton("Remove All Buffs", () => NetUtil.Do(PoppyOp.RemoveAllBuffs));
             Widgets.SectionEnd();
         }
 

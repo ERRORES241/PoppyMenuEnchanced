@@ -112,7 +112,6 @@ namespace PoppyMenu
 
             Notify.Draw();
 
-            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one * ModConfig.UiScale.Value);
             MenuRoot.Draw(_groups);
         }
 

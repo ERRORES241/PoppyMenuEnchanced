@@ -119,19 +119,10 @@ namespace PoppyMenu
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Time");
-            FreezeMatch = Widgets.Toggle("Freeze Match (everything stops)", FreezeMatch);
-            Widgets.Hint("Stops everything, including you. Toggle off to move. Host or solo.");
-
-            FreezeTimer = Widgets.Toggle("Freeze Timer (difficulty)", FreezeTimer);
-            Widgets.Hint("Stops the run clock so difficulty quits climbing. Enemies still move.");
-
-            GUILayout.Space(4);
-            TimeScale = Widgets.Slider("Time Scale", TimeScale, 0.1f, 3f);
-            GUILayout.BeginHorizontal();
-            Widgets.Button("Slow-mo (0.25x)", () => TimeScale = 0.25f);
-            Widgets.Button("Normal (1x)", () => TimeScale = 1f);
-            Widgets.Button("Fast (2x)", () => TimeScale = 2f);
-            GUILayout.EndHorizontal();
+            FreezeMatch = Widgets.Toggle("Freeze Match", FreezeMatch, "Stops everything, including you. Toggle off to move. Host or solo.");
+            FreezeTimer = Widgets.Toggle("Freeze Timer", FreezeTimer, "Stops the run clock so difficulty quits climbing. Enemies still move.");
+            TimeScale = Widgets.Slider("Time Scale", TimeScale, 0.1f, 3f, format: "0.##x");
+            Widgets.Buttons("Presets", null, ("0.25x", () => TimeScale = 0.25f), ("1x", () => TimeScale = 1f), ("2x", () => TimeScale = 2f));
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Global Actions");
@@ -139,17 +130,17 @@ namespace PoppyMenu
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Shrines");
-            GuaranteedShrineChance = Widgets.Toggle("100% Shrine of Chance Win Rate", GuaranteedShrineChance);
-            Widgets.Hint("Guarantees an item drop on every offer at Shrine of Chance (no fails). Host or solo.");
-            InfiniteShrineChance = Widgets.Toggle("Infinite Shrine of Chance Uses", InfiniteShrineChance);
-            Widgets.Hint("Allows using Shrine of Chance infinitely without it shutting down.");
+            GuaranteedShrineChance = Widgets.Toggle("100% Shrine of Chance Win Rate", GuaranteedShrineChance,
+                "Every offer at a Shrine of Chance drops an item. Host or solo.");
+            InfiniteShrineChance = Widgets.Toggle("Infinite Shrine of Chance Uses", InfiniteShrineChance,
+                "The shrine never shuts down after its usual number of uses.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Safety");
-            Safety.NoEnemies = Widgets.Toggle("No Enemies (kill on spawn)", Safety.NoEnemies);
-            Safety.LockExp = Widgets.Toggle("Lock Experience", Safety.LockExp);
-            Safety.PreventProfileWriting = Widgets.Toggle("Prevent Profile Saving", Safety.PreventProfileWriting);
-            Widgets.Hint("Host or solo. Prevent Profile Saving keeps test runs out of your save file.");
+            Safety.NoEnemies = Widgets.Toggle("No Enemies", Safety.NoEnemies, "Kills enemies as they spawn. Host or solo.");
+            Safety.LockExp = Widgets.Toggle("Lock Experience", Safety.LockExp, "Host or solo.");
+            Safety.PreventProfileWriting = Widgets.Toggle("Prevent Profile Saving", Safety.PreventProfileWriting,
+                "Keeps test runs out of your save file.");
             Widgets.SectionEnd();
         }
     }

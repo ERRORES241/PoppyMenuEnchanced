@@ -17,11 +17,11 @@ namespace PoppyMenu
             Widgets.SectionBegin("Give");
             GiveCount = Widgets.IntStepper("Count", GiveCount, 1, 1, 1000);
 
-            Widgets.Button("Give Item...", () =>
+            Widgets.Button("Give Item", () =>
                 ItemPicker.Open("Items", idx => NetUtil.Do(PoppyOp.GiveItem, (int)idx, GiveCount)));
 
-            Widgets.PickerButton("Give Equipment...", "Equipment", EquipRows);
-            Widgets.PickerButton("Give Key Item...", "Key Items", KeyItemRows);
+            Widgets.PickerButton("Give Equipment", "Equipment", EquipRows);
+            Widgets.PickerButton("Give Key Item", "Key Items", KeyItemRows);
             Widgets.Button($"Give All Items (x{GiveCount})", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: GiveCount));
             Widgets.SectionEnd();
 

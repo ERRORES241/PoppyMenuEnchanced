@@ -262,26 +262,18 @@ namespace PoppyMenu
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Movement");
-            Flight = Widgets.Toggle("Flight", Flight);
+            Flight = Widgets.Toggle("Flight", Flight, "Move keys to fly, Jump up, Left Ctrl down. You can still aim and fire while flying.");
+            ModConfig.FlightSpeed.Value = Widgets.Slider("Fly Speed", ModConfig.FlightSpeed.Value, 5f, 150f, format: "0");
             NoClip = Widgets.Toggle("No-Clip (fly through walls)", NoClip);
             AlwaysSprint = Widgets.Toggle("Always Sprint", AlwaysSprint);
             JumpPack = Widgets.Toggle("Jump Pack", JumpPack);
             Bhop = Widgets.Toggle("BunnyHop (Auto-jump on land)", Bhop);
-            ModConfig.FlightSpeed.Value = Widgets.Slider("Fly Speed", ModConfig.FlightSpeed.Value, 5f, 150f);
-            Widgets.Hint("Fly: move keys, Jump up, Left Ctrl down. You can still aim and fire while flying.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Teleportation");
-            TeleportToPing = Widgets.Toggle("Auto Teleport on Ping", TeleportToPing);
-            Widgets.Hint("Instantly teleports your survivor to wherever you place a ping in-game.");
-            if (Widgets.Button("Teleport to Current Ping"))
-            {
-                TeleportToCurrentPing();
-            }
-            if (Widgets.Button("Teleport to Cursor"))
-            {
-                TeleportToCursor();
-            }
+            TeleportToPing = Widgets.Toggle("Auto Teleport on Ping", TeleportToPing,
+                "Instantly teleports your survivor to wherever you place a ping in-game.");
+            Widgets.Buttons("Teleport now", null, ("To ping", TeleportToCurrentPing), ("To cursor", TeleportToCursor));
             Widgets.SectionEnd();
         }
     }

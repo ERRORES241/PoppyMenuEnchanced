@@ -32,13 +32,13 @@ namespace PoppyMenu
 
         internal override void DrawMenu()
         {
-            if (!PlayerContext.InGame) { Widgets.Label("Start a run first."); return; }
+            if (!PlayerContext.InGame) { Widgets.EmptyState("Start a run first."); return; }
 
             Widgets.SectionBegin("Teleporter");
             TeleporterInteraction tp = TeleporterInteraction.instance;
-            Widgets.Label(tp != null ? "Charge: " + Mathf.FloorToInt(tp.chargeFraction * 100f) + "%" : "No teleporter on this stage.");
-            InstaCharge = Widgets.Toggle("Instant Charge (hold)", InstaCharge);
-            Widgets.Hint("Also fills Void Fields cells, Void Locus signals and moon pillars.");
+            Widgets.Value("Charge", tp != null ? Mathf.FloorToInt(tp.chargeFraction * 100f) + "%" : "No teleporter");
+            InstaCharge = Widgets.Toggle("Instant Charge (hold)", InstaCharge,
+                "Also fills Void Fields cells, Void Locus signals and moon pillars.");
             Widgets.Button("Skip Stage", () => NetUtil.Do(PoppyOp.SkipStage));
             Widgets.Button("Add Mountain Shrine Stack", () => NetUtil.Do(PoppyOp.AddMountainShrine));
             Widgets.SectionEnd();

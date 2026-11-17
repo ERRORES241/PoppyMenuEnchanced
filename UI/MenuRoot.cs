@@ -4,23 +4,33 @@ using UnityEngine;
 
 namespace PoppyMenu
 {
+    // Main window: icon rail on the left, top bar (title, breadcrumb, search, close),
+    // sub-page segments, scrolling page content and an active-effects footer.
+    // Position is kept in screen pixels, size in logical units (multiplied by Theme.Scale).
     internal static class MenuRoot
     {
         private const int WindowId = 0x5B7A00;
         internal static bool Visible;
         internal static int ActiveTab;
 
-        private static Rect _rect = new Rect(40, 60, 580, 640);
+        private const float DefaultW = 640f, DefaultH = 560f;
+        private const float MinW = 560f, MinH = 420f, MaxW = 1200f, MaxH = 1000f;
+        private const float RailW = 60f, TopH = 56f, FootH = 30f;
+        private const string SearchControl = "poppy_menu_search";
+
+        private static Vector2 _pos = new Vector2(40, 60);
+        private static Vector2 _size = new Vector2(DefaultW, DefaultH);
+        private static Rect _screenRect;
         private static Vector2 _scroll;
         private static List<TabGroup> _groups;
-        private static bool _posLoaded;
+        private static bool _posLoaded, _resizing;
+        private static string _search = "";
 
-        private static GUIStyle _headerBar, _sidebar, _hudBox, _hudTitle, _hudLine, _footerHint;
-        private static bool _resizing;
-
-        private const float MinW = 420f, MinH = 360f, MaxW = 1200f, MaxH = 1000f;
-        private const float SidebarW = 148f;
-        private const float HeaderH = 34f;
+        private static readonly Dictionary<string, string> TabIcons = new Dictionary<string, string>
+        {
+            { "Aimbot", Icons.Crosshair }, { "Visuals", Icons.Eye }, { "Movement", Icons.Footprints },
+            { "Player", Icons.User }, { "World", Icons.Globe }, { "Fun", Icons.Sparkles }, { "Settings", Icons.Settings },
+        };
 
         /* ═══════════════════════════════════════════════════════════════
          *  Public API
@@ -29,20 +39,24 @@ namespace PoppyMenu
         internal static void Draw(List<TabGroup> groups)
         {
             _groups = groups;
-            EnsureLocalStyles();
 
             if (!_posLoaded)
             {
-                _rect.x = ModConfig.WindowX.Value;
-                _rect.y = ModConfig.WindowY.Value;
-                _rect.width  = Mathf.Clamp(ModConfig.WindowW.Value, MinW, MaxW);
-                _rect.height = Mathf.Clamp(ModConfig.WindowH.Value, MinH, MaxH);
+                _pos = new Vector2(ModConfig.WindowX.Value, ModConfig.WindowY.Value);
+                _size = new Vector2(Mathf.Clamp(ModConfig.WindowW.Value, MinW, MaxW), Mathf.Clamp(ModConfig.WindowH.Value, MinH, MaxH));
                 _posLoaded = true;
             }
 
             if (Visible)
-                _rect = GUI.Window(WindowId, _rect, DrawWindow, "", Theme.Window);
-            
+            {
+                float w = Theme.S(_size.x), h = Theme.S(_size.y);
+                _pos.x = Mathf.Clamp(_pos.x, 80f - w, Screen.width - 80f);
+                _pos.y = Mathf.Clamp(_pos.y, 0f, Screen.height - 40f);
+                _screenRect = new Rect(_pos.x, _pos.y, w, h);
+                Rect moved = GUI.Window(WindowId, _screenRect, DrawWindow, "", GUIStyle.none);
+                _pos = moved.position;
+            }
+
             if (ModConfig.ShowHud.Value && PlayerContext.InGame)
                 DrawHud();
 
@@ -58,61 +72,20 @@ namespace PoppyMenu
             }
         }
 
-        private static GUIStyle _tooltipStyle, _centerRichHint, _richHint;
-
-        private static void DrawTooltip()
-        {
-            float scale = Mathf.Max(0.1f, ModConfig.UiScale.Value);
-            if (_tooltipStyle == null)
-            {
-                _tooltipStyle = new GUIStyle(Theme.Hint);
-                _tooltipStyle.wordWrap = true;
-                _tooltipStyle.padding = new RectOffset(8, 8, 6, 6);
-                _tooltipStyle.normal.background = Theme.RoundedRect(24, 24, 8, new Color(0.12f, 0.12f, 0.14f, 1f));
-                _tooltipStyle.border = new RectOffset(8, 8, 8, 8);
-                _tooltipStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
-            }
-            GUIStyle style = _tooltipStyle;
-
-            float w = 260f;
-            float h = style.CalcHeight(new GUIContent(Widgets.CurrentTooltip), w);
-
-            Vector2 mouse = Input.mousePosition;
-            float mouseX = mouse.x / scale;
-            float mouseY = (Screen.height - mouse.y) / scale;
-            
-            float x = mouseX + 12f;
-            float y = mouseY + 12f;
-
-            if (x + w > Screen.width / scale) x = mouseX - w - 8f;
-            if (y + h > Screen.height / scale) y = mouseY - h - 8f;
-
-            GUI.Window(WindowId + 1, new Rect(x, y, w, h), (id) =>
-            {
-                GUI.Label(new Rect(0, 0, w, h), Widgets.CurrentTooltip, style);
-            }, "", GUIStyle.none);
-            GUI.BringWindowToFront(WindowId + 1);
-        }
-
         internal static void SaveLayout()
         {
-            ModConfig.WindowX.Value = _rect.x;
-            ModConfig.WindowY.Value = _rect.y;
-            ModConfig.WindowW.Value = _rect.width;
-            ModConfig.WindowH.Value = _rect.height;
+            ModConfig.WindowX.Value = _pos.x;
+            ModConfig.WindowY.Value = _pos.y;
+            ModConfig.WindowW.Value = _size.x;
+            ModConfig.WindowH.Value = _size.y;
         }
 
-        internal static bool ContainsPoint(Vector2 screenPoint)
-        {
-            if (!Visible) return false;
-            float scale = Mathf.Max(0.1f, ModConfig.UiScale.Value);
-            Rect s = new Rect(_rect.x * scale, _rect.y * scale, _rect.width * scale, _rect.height * scale);
-            return s.Contains(screenPoint);
-        }
+        internal static bool ContainsPoint(Vector2 screenPoint) => Visible && _screenRect.Contains(screenPoint);
 
         internal static void ResetPosition()
         {
-            _rect = new Rect(40, 60, 580, 640);
+            _pos = new Vector2(40, 60);
+            _size = new Vector2(DefaultW, DefaultH);
             SaveLayout();
         }
 
@@ -124,37 +97,18 @@ namespace PoppyMenu
         {
             if (_groups == null) return;
             for (int i = 0; i < _groups.Count; i++)
-                if (_groups[i].Name == name) { ActiveTab = i; Visible = true; return; }
+                if (_groups[i].Name == name) { OpenTab(i); Visible = true; return; }
             for (int i = 0; i < _groups.Count; i++)
                 for (int j = 0; j < _groups[i].Pages.Count; j++)
-                    if (_groups[i].Pages[j].Name == name) { ActiveTab = i; _groups[i].Page = j; Visible = true; return; }
+                    if (_groups[i].Pages[j].Name == name) { OpenTab(i); _groups[i].Page = j; Visible = true; return; }
         }
 
-        /* ═══════════════════════════════════════════════════════════════
-         *  Local Styles
-         * ═══════════════════════════════════════════════════════════════ */
-
-        private static void EnsureLocalStyles()
+        private static void OpenTab(int i)
         {
-            if (_headerBar != null) return;
-
-            _headerBar = new GUIStyle(GUI.skin.box) { padding = new RectOffset(12, 10, 0, 0) };
-            _headerBar.normal.background = Theme.GradientV(4, 48, 0,
-                Theme.HeaderBg,
-                new Color(Theme.HeaderBg.r + 0.02f, Theme.HeaderBg.g + 0.02f, Theme.HeaderBg.b + 0.04f));
-
-            _sidebar = new GUIStyle(GUI.skin.box) { padding = new RectOffset(6, 6, 10, 10) };
-            _sidebar.normal.background = Theme.Solid(Theme.SidebarBg);
-
-            _hudBox = new GUIStyle(GUI.skin.box)
-            {
-                padding = new RectOffset(12, 12, 10, 10),
-                alignment = TextAnchor.UpperLeft
-            };
-            _hudBox.normal.background = Theme.RoundedRect(20, 20, 8, Theme.WindowBg);
-            _hudBox.border = new RectOffset(8, 8, 8, 8);
-
-            _footerHint = new GUIStyle(Theme.Hint) { alignment = TextAnchor.MiddleRight };
+            Widgets.CloseDropdown();
+            if (ActiveTab != i) _scroll = Vector2.zero;
+            ActiveTab = i;
+            _search = "";
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -163,206 +117,260 @@ namespace PoppyMenu
 
         private static void DrawWindow(int id)
         {
+            float W = _screenRect.width, H = _screenRect.height;
+            Theme.Box(new Rect(0, 0, W, H), Theme.WindowBg);
             if (_groups == null || _groups.Count == 0) { GUI.DragWindow(); return; }
             ActiveTab = Mathf.Clamp(ActiveTab, 0, _groups.Count - 1);
 
-            // Resize click detection
-            if (Event.current.type == EventType.MouseDown
-                && new Rect(_rect.width - 26f, _rect.height - 26f, 26f, 26f).Contains(Event.current.mousePosition))
+            Widgets.DropdownInput(_screenRect.position, H);
+            Rect grip = Widgets.GripRect(W, H);
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && grip.Contains(Event.current.mousePosition))
             {
                 _resizing = true;
                 Event.current.Use();
             }
 
-            DrawHeaderBar();
-            DrawHeaderSeparator();
+            DrawRail(H);
+            float x0 = Theme.S(RailW);
+            DrawTopBar(x0, W);
+            float top = DrawSegments(x0);
+            DrawContent(new Rect(x0, top, W - x0, H - top - Theme.S(FootH)));
+            DrawFooter(x0, W, H);
+            Widgets.DropdownDraw(_screenRect.position, H);
+            HandleResize(grip);
 
-            GUILayout.BeginHorizontal();
-            DrawSidebar();
-            DrawSidebarSeparator();
-            DrawContent();
-            GUILayout.EndHorizontal();
-
-            DrawFooter();
-            HandleResize();
-            GUI.DragWindow(new Rect(0, 0, _rect.width, HeaderH));
+            GUI.DragWindow(new Rect(x0, 0, W - x0, Theme.S(TopH)));
         }
 
-        /* ─────── Header ────────────────────────────────────────────── */
+        /* ─────── Icon rail ─────────────────────────────────────────── */
 
-        private static void DrawHeaderBar()
+        private static void DrawRail(float H)
         {
-            GUILayout.BeginHorizontal(_headerBar, GUILayout.Height(HeaderH));
+            float rw = Theme.S(RailW);
+            if (Event.current.type == EventType.Repaint)
+            {
+                float edge = Mathf.Max(1f, Theme.S(1));
+                Theme.RailBg.Draw(new Rect(edge, edge, rw - edge, H - edge * 2f), false, false, false, false);
+                Theme.Fill(new Rect(rw - Theme.S(14), edge, Theme.S(14), H - edge * 2f), Theme.Rail);
+            }
 
-            // Logo
-            GUILayout.Label("<b><color=#" + Theme.Hex(Theme.Accent) + ">Poppy Menu Enhanced</color></b>",
-                Theme.Header, GUILayout.ExpandWidth(false));
+            Rect logo = new Rect(Theme.S(13), Theme.S(12), Theme.S(34), Theme.S(34));
+            Theme.Rounded(logo, 9f, Theme.Accent);
+            GUI.Label(logo, "P", Theme.Logo);
 
-            GUILayout.FlexibleSpace();
-            DrawStatusPill();
+            float y = logo.yMax + Theme.S(14);
+            Vector2 m = Event.current.mousePosition;
+            for (int i = 0; i < _groups.Count; i++)
+            {
+                Rect r = new Rect(Theme.S(10), y, Theme.S(40), Theme.S(40));
+                bool active = i == ActiveTab && string.IsNullOrEmpty(_search);
+                bool hover = r.Contains(m);
+                if (active) Theme.Rounded(r, 10f, Theme.AccentSoft);
+                else if (hover) Theme.Rounded(r, 10f, Theme.RowHover);
+                if (!TabIcons.TryGetValue(_groups[i].Name, out string icon)) icon = Icons.Sparkles;
+                Icons.DrawCentered(r, icon, 20, active ? Theme.Accent : hover ? Theme.Text : Theme.Faint);
+                Widgets.Tooltip(r, _groups[i].Name);
+                if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && hover)
+                {
+                    OpenTab(i);
+                    GUI.FocusControl(null);
+                    Event.current.Use();
+                }
+                y += Theme.S(44);
+            }
 
-            // Scale controls
-            if (GUILayout.Button("\u2212", Theme.IconBtn, GUILayout.Width(28), GUILayout.Height(24)))
-                ModConfig.UiScale.Value = Mathf.Clamp(ModConfig.UiScale.Value - 0.1f, 0.6f, 2f);
-            if (GUILayout.Button("+", Theme.IconBtn, GUILayout.Width(28), GUILayout.Height(24)))
-                ModConfig.UiScale.Value = Mathf.Clamp(ModConfig.UiScale.Value + 0.1f, 0.6f, 2f);
+            string text; Color col;
+            if (!PlayerContext.InGame) { text = "MENU"; col = Theme.Faint; }
+            else if (NetUtil.IsServer) { text = "HOST"; col = Theme.Ok; }
+            else { text = "CLIENT"; col = Theme.Warn; }
+            Rect pill = new Rect(Theme.S(8), H - Theme.S(12) - Theme.S(18), rw - Theme.S(16), Theme.S(18));
+            Theme.Rounded(pill, 5f, new Color(col.r, col.g, col.b, 0.14f));
+            Theme.Pill.normal.textColor = col;
+            GUI.Label(pill, text, Theme.Pill);
+        }
 
-            GUILayout.Space(4);
+        /* ─────── Top bar ───────────────────────────────────────────── */
 
-            // Close
-            if (GUILayout.Button("\u2715", Theme.IconBtn, GUILayout.Width(28), GUILayout.Height(24)))
+        private static void DrawTopBar(float x0, float W)
+        {
+            float th = Theme.S(TopH);
+            TabGroup group = _groups[ActiveTab];
+            group.Page = Mathf.Clamp(group.Page, 0, group.Pages.Count - 1);
+
+            string title = Widgets.Searching ? "Search" : group.Name;
+            string crumb = Widgets.Searching ? "" : group.Pages.Count > 1 ? "/  " + group.Pages[group.Page].Name : "";
+            float tx = x0 + Theme.S(20);
+            float tw = Theme.Title.CalcSize(new GUIContent(title)).x;
+            GUI.Label(new Rect(tx, 0, tw, th), title, Theme.Title);
+            if (crumb.Length > 0)
+                GUI.Label(new Rect(tx + tw + Theme.S(10), 0, Theme.S(160), th), crumb, Theme.Crumb);
+
+            float bh = Theme.S(30), by = Mathf.Round((th - bh) * 0.5f);
+            Rect close = new Rect(W - Theme.S(14) - bh, by, bh, bh);
+            Vector2 m = Event.current.mousePosition;
+            if (close.Contains(m)) Theme.Rounded(close, 8f, Theme.Ctrl);
+            Icons.DrawCentered(close, Icons.X, 16, close.Contains(m) ? Theme.Text : Theme.Sub);
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && close.Contains(m))
             {
                 Visible = false;
                 SaveLayout();
                 ListPicker.Close();
+                Event.current.Use();
             }
 
-            GUILayout.EndHorizontal();
-        }
-
-        private static void DrawStatusPill()
-        {
-            string text; Color col;
-            if (!PlayerContext.InGame)        { text = "MENU";            col = Theme.TextDim; }
-            else if (NetUtil.IsServer)        { text = "HOST";            col = Theme.On; }
-            else                              { text = "CLIENT";          col = new Color(0.95f, 0.78f, 0.28f); }
-
-            Theme.Pill.normal.textColor = col;
-            GUILayout.Label("\u25CF " + text, Theme.Pill, GUILayout.Height(24));
-        }
-
-        private static void DrawHeaderSeparator()
-        {
-            Rect r = GUILayoutUtility.GetRect(1, 1, GUILayout.ExpandWidth(true));
-            Theme.Fill(new Rect(r.x, r.y, r.width, 1), new Color(Theme.Accent.r, Theme.Accent.g, Theme.Accent.b, 0.25f));
-        }
-
-        /* ─────── Sidebar ───────────────────────────────────────────── */
-
-        private static Vector2 _sideScroll;
-
-        private static void DrawSidebar()
-        {
-            float sideH = Mathf.Max(100f, _rect.height - HeaderH - 32f);
-            GUILayout.BeginVertical(_sidebar, GUILayout.Width(SidebarW), GUILayout.Height(sideH));
-            _sideScroll = GUILayout.BeginScrollView(_sideScroll, GUILayout.Width(SidebarW));
-
-            for (int i = 0; i < _groups.Count; i++)
+            Rect search = new Rect(close.x - Theme.S(8) - Theme.S(190), by, Theme.S(190), bh);
+            bool focused = GUI.GetNameOfFocusedControl() == SearchControl;
+            if (focused && Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
             {
-                bool active = i == ActiveTab;
-                if (GUILayout.Button(_groups[i].Name, active ? Theme.SideItemActive : Theme.SideItem,
-                        GUILayout.Height(34)))
-                    ActiveTab = i;
-
-                // Accent indicator bar on the left
-                if (active)
-                {
-                    Rect btn = GUILayoutUtility.GetLastRect();
-                    Theme.Fill(new Rect(btn.x, btn.y + 5, 3, btn.height - 10), Theme.Accent);
-                }
+                _search = "";
+                GUI.FocusControl(null);
+                Event.current.Use();
             }
+            GUI.SetNextControlName(SearchControl);
+            string next = GUI.TextField(search, _search ?? "", 64, Theme.Search);
+            if (next != _search) { _search = next; _scroll = Vector2.zero; }
+            Icons.Draw(new Rect(search.x + Theme.S(10), search.y + (bh - Theme.S(14)) * 0.5f, Theme.S(14), Theme.S(14)), Icons.Search, Theme.Faint);
+            if (string.IsNullOrEmpty(_search) && !focused)
+                GUI.Label(new Rect(search.x + Theme.S(30), search.y, search.width - Theme.S(36), bh), "Search features", Theme.Placeholder);
 
-            GUILayout.EndScrollView();
-            GUILayout.EndVertical();
+            if (Event.current.type == EventType.Repaint)
+                Theme.Fill(new Rect(x0, th - 1f, W - x0, Mathf.Max(1f, Theme.S(1))), Theme.Line);
+
+            Widgets.Filter = string.IsNullOrEmpty(_search) ? null : _search.Trim();
+            if (Widgets.Filter != null && Widgets.Filter.Length == 0) Widgets.Filter = null;
         }
 
-        private static void DrawSidebarSeparator()
+        /* ─────── Sub-pages ─────────────────────────────────────────── */
+
+        private static float DrawSegments(float x0)
         {
-            Rect r = GUILayoutUtility.GetRect(1, 1, GUILayout.Width(1));
-            float sideH = Mathf.Max(100f, _rect.height - HeaderH - 32f);
-            Theme.Fill(new Rect(r.x, r.y, 1, sideH), new Color(1, 1, 1, 0.04f));
+            float top = Theme.S(TopH);
+            TabGroup group = _groups[ActiveTab];
+            if (Widgets.Searching || group.Pages.Count < 2) return top + Theme.S(4);
+
+            var names = new string[group.Pages.Count];
+            for (int i = 0; i < names.Length; i++) names[i] = group.Pages[i].Name;
+            float[] widths = Widgets.SegmentWidths(names);
+            float w = Theme.S(6);
+            foreach (float f in widths) w += f;
+            Rect bar = new Rect(x0 + Theme.S(20), top + Theme.S(12), w, Theme.S(32));
+            int page = Widgets.SegmentedBar(bar, group.Page, names, widths);
+            if (page != group.Page) { group.Page = page; _scroll = Vector2.zero; }
+            return bar.yMax + Theme.S(4);
         }
 
         /* ─────── Content ───────────────────────────────────────────── */
 
-        private static void DrawContent()
+        private static void DrawContent(Rect area)
         {
+            GUILayout.BeginArea(new Rect(area.x + Theme.S(20), area.y, area.width - Theme.S(20) - Theme.S(12), area.height));
+            _scroll = GUILayout.BeginScrollView(_scroll, false, false, GUIStyle.none, GUI.skin.verticalScrollbar, GUIStyle.none);
             GUILayout.BeginVertical();
-            GUILayout.Space(4);
 
-            if (!PlayerContext.InGame)
-                GUILayout.Label("<color=#" + Theme.Hex(Theme.TextDim) + ">Start a run to use most features.</color>",
-                    _centerRichHint ?? (_centerRichHint = new GUIStyle(Theme.Hint) { richText = true, alignment = TextAnchor.MiddleCenter }));
-
-            TabGroup group = _groups[ActiveTab];
-            group.Page = Mathf.Clamp(group.Page, 0, group.Pages.Count - 1);
-
-            // ── Sub-tab pills ──
-            bool hasSubNav = group.Pages.Count > 1;
-            if (hasSubNav)
+            if (Widgets.Searching)
             {
-                GUILayout.BeginHorizontal();
-                for (int i = 0; i < group.Pages.Count; i++)
+                Widgets.Matches = 0;
+                foreach (TabGroup g in _groups)
+                    foreach (PoppyModule p in g.Pages)
+                        DrawPage(p, g.Pages.Count > 1 ? g.Name + "  /  " + p.Name : g.Name);
+                if (Widgets.Matches == 0)
                 {
-                    bool act = i == group.Page;
-                    if (GUILayout.Button(group.Pages[i].Name, act ? Theme.Primary : Theme.Button,
-                            GUILayout.Height(26)))
-                        group.Page = i;
+                    GUILayout.Space(Theme.S(16));
+                    GUILayout.Label("Nothing matches \"" + Widgets.Filter + "\".", Theme.Desc);
                 }
-                GUILayout.EndHorizontal();
-                GUILayout.Space(4);
+            }
+            else
+            {
+                if (!PlayerContext.InGame)
+                {
+                    GUILayout.Space(Theme.S(10));
+                    GUILayout.Label("Start a run to use most features.", Theme.Desc, GUILayout.Height(Theme.S(16)));
+                }
+                TabGroup group = _groups[ActiveTab];
+                DrawPage(group.Pages[group.Page], null);
             }
 
-            // ── Scrollable content ──
-            PoppyModule page = group.Pages[group.Page];
-            float contentH = Mathf.Max(100f, _rect.height - HeaderH - 36f - (hasSubNav ? 34f : 0f));
-            _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(contentH));
-            Widgets.OpenSections = 0;
+            GUILayout.Space(Theme.S(14));
+            GUILayout.EndVertical();
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+            Widgets.Filter = null;
+        }
+
+        private static void DrawPage(PoppyModule page, string title)
+        {
+            Widgets.BeginPage(title);
             try
             {
                 page.DrawMenu();
+                Widgets.EndPage();
             }
             catch (System.Exception e)
             {
-                while (Widgets.OpenSections > 0) Widgets.SectionEnd();
+                Widgets.EndPage();
                 GUILayout.Label("This tab hit an error, see console.", Theme.Label);
                 Log.Error($"{page.Name}.DrawMenu: {e}");
             }
-            GUILayout.EndScrollView();
-            GUILayout.EndVertical();
         }
 
         /* ─────── Footer ────────────────────────────────────────────── */
 
-        private static void DrawFooter()
+        private static void DrawFooter(float x0, float W, float H)
         {
-            // Separator
-            Rect sep = GUILayoutUtility.GetRect(1, 1, GUILayout.ExpandWidth(true));
-            Theme.Fill(new Rect(sep.x, sep.y, sep.width, 1), new Color(1, 1, 1, 0.04f));
+            float fh = Theme.S(FootH), y = H - fh;
+            if (Event.current.type != EventType.Repaint) return;
+            Theme.Fill(new Rect(x0, y, W - x0, Mathf.Max(1f, Theme.S(1))), Theme.Line);
 
-            GUILayout.BeginHorizontal(GUILayout.Height(22));
-            int n = ActiveEffects().Count;
-            string status = n > 0
-                ? $"<color=#{Theme.Hex(Theme.On)}>\u25CF {n} active</color>"
-                : "<color=#555562>\u25CB idle</color>";
-            GUILayout.Label(status, _richHint ?? (_richHint = new GUIStyle(Theme.Hint) { richText = true }), GUILayout.Width(100));
+            List<string> fx = ActiveEffects();
+            float dot = Theme.S(6);
+            float x = x0 + Theme.S(20);
+            Theme.Rounded(new Rect(x, y + (fh - dot) * 0.5f, dot, dot), 3f, fx.Count > 0 ? Theme.Ok : Theme.Faint);
 
-            GUILayout.FlexibleSpace();
-            GUILayout.Label($"[{ModConfig.ToggleMenuKey.Value}] toggle  \u00B7  drag header to move", _footerHint);
-            GUILayout.EndHorizontal();
+            const string hint = "to toggle";
+            string key = ModConfig.ToggleMenuKey.Value.ToString();
+            float hw = Theme.SmallRight.CalcSize(new GUIContent(hint)).x + Theme.S(4);
+            float kw = Theme.Kbd.CalcSize(new GUIContent(key)).x + Theme.S(4);
+            float right = W - Theme.S(30); // leave room for the resize grip
+            GUI.Label(new Rect(right - hw, y, hw, fh), hint, Theme.SmallRight);
+            float kx = right - hw - Theme.S(6) - kw;
+            Theme.Kbd.Draw(new Rect(kx, y + (fh - Theme.S(18)) * 0.5f, kw, Theme.S(18)), new GUIContent(key), false, false, false, false);
+
+            string status = fx.Count > 0 ? fx.Count + " active: " + string.Join(", ", fx) : "Idle";
+            float sx = x + dot + Theme.S(8);
+            GUI.Label(new Rect(sx, y, kx - Theme.S(12) - sx, fh), status, Theme.Small);
         }
 
-        /* ─────── Resize Handle ─────────────────────────────────────── */
+        /* ─────── Resize ────────────────────────────────────────────── */
 
-        private static void HandleResize()
+        private static void HandleResize(Rect grip)
         {
-            // Draw grip (three diagonal lines)
-            float gx = _rect.width - 16f, gy = _rect.height - 16f;
-            Color grip = new Color(1, 1, 1, 0.15f);
-            Theme.Fill(new Rect(gx + 8f,  gy + 12f, 6f, 1.5f), grip);
-            Theme.Fill(new Rect(gx + 12f, gy + 8f,  1.5f, 6f), grip);
-            Theme.Fill(new Rect(gx + 4f,  gy + 12f, 3f, 1.5f), grip);
-            Theme.Fill(new Rect(gx + 12f, gy + 4f,  1.5f, 3f), grip);
-
+            Widgets.ResizeGrip(grip, _resizing);
             if (!_resizing) return;
 
-            float scale = Mathf.Max(0.1f, ModConfig.UiScale.Value);
-            float mouseX = Input.mousePosition.x / scale;
-            float mouseY = (Screen.height - Input.mousePosition.y) / scale;
-            _rect.width  = Mathf.Clamp(mouseX - _rect.x + 3f, MinW, MaxW);
-            _rect.height = Mathf.Clamp(mouseY - _rect.y + 3f, MinH, MaxH);
-
+            Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            _size.x = Mathf.Clamp((mouse.x - _pos.x + 3f) / Theme.Scale, MinW, MaxW);
+            _size.y = Mathf.Clamp((mouse.y - _pos.y + 3f) / Theme.Scale, MinH, MaxH);
             if (!Input.GetMouseButton(0)) { _resizing = false; SaveLayout(); }
+        }
+
+        /* ─────── Tooltip ───────────────────────────────────────────── */
+
+        private static void DrawTooltip()
+        {
+            var content = new GUIContent(Widgets.CurrentTooltip);
+            Vector2 size = Theme.TipBg.CalcSize(content);
+            float w = Mathf.Min(size.x, Theme.S(260));
+            float h = Theme.TipBg.CalcHeight(content, w);
+            Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            float x = mouse.x + Theme.S(14), y = mouse.y + Theme.S(10);
+            if (x + w > Screen.width) x = mouse.x - w - Theme.S(8);
+            if (y + h > Screen.height) y = mouse.y - h - Theme.S(8);
+
+            GUI.Window(WindowId + 1, new Rect(x, y, w, h), _ =>
+            {
+                GUI.Label(new Rect(0, 0, w, h), Widgets.CurrentTooltip, Theme.TipBg);
+            }, "", GUIStyle.none);
+            GUI.BringWindowToFront(WindowId + 1);
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -374,41 +382,19 @@ namespace PoppyMenu
 
         private static void DrawHud()
         {
-            if (_hudTitle == null)
-            {
-                _hudTitle = new GUIStyle(Theme.Label)
-                {
-                    richText = true, fontSize = 12, wordWrap = false, fontStyle = FontStyle.Bold, clipping = TextClipping.Overflow
-                };
-                _hudLine = new GUIStyle(Theme.Hint)
-                {
-                    richText = true, fontSize = 11, wordWrap = false, clipping = TextClipping.Overflow
-                };
-            }
-
             List<string> active = ActiveEffects();
             if (active.Count == 0) return;
 
-            float maxW = 120f;
+            string key = ModConfig.ToggleMenuKey.Value.ToString();
+            float pad = Theme.S(14), lineH = Theme.S(20), titleH = Theme.S(22), gap = Theme.S(4);
+            float pw = Mathf.Ceil(Theme.LabelBold.CalcSize(new GUIContent("POPPY")).x);
+            float kw = Mathf.Ceil(Theme.Kbd.CalcSize(new GUIContent(key)).x) + Theme.S(4);
+            float maxW = pw + Theme.S(8) + kw;
             foreach (string e in active)
-            {
-                Vector2 s = _hudLine.CalcSize(new GUIContent("\u25CF " + e));
-                if (s.x > maxW) maxW = s.x;
-            }
+                maxW = Mathf.Max(maxW, Theme.S(16) + Mathf.Ceil(Theme.Small.CalcSize(new GUIContent(e)).x));
 
-            Vector2 titleS = _hudTitle.CalcSize(new GUIContent($"POPPY  [{ModConfig.ToggleMenuKey.Value}]"));
-            if (titleS.x > maxW) maxW = titleS.x;
-
-            float padX = 14f;
-            float padY = 14f;
-            float titleH = 18f;
-            float titleGap = 6f;
-            float lineH = 18f;
-            float lineGap = 2f;
-
-            float width = maxW + padX * 2f;
-            float h = padY * 2f + titleH + titleGap + active.Count * (lineH + lineGap) + 10f;
-
+            float width = Mathf.Round(maxW + pad * 2f);
+            float h = Mathf.Round(pad * 2f + titleH + gap + active.Count * lineH);
             Rect r = new Rect(ModConfig.HudX.Value, ModConfig.HudY.Value, width, h);
 
             Event ev = Event.current;
@@ -417,10 +403,7 @@ namespace PoppyMenu
                 _draggingHud = true;
                 _hudDragOffset = ev.mousePosition - new Vector2(r.x, r.y);
             }
-            else if (ev.type == EventType.MouseUp)
-            {
-                _draggingHud = false;
-            }
+            else if (ev.type == EventType.MouseUp) _draggingHud = false;
             else if (ev.type == EventType.MouseDrag && _draggingHud)
             {
                 ModConfig.HudX.Value = ev.mousePosition.x - _hudDragOffset.x;
@@ -429,26 +412,23 @@ namespace PoppyMenu
                 r.y = ModConfig.HudY.Value;
             }
 
-            // Draw Background
-            GUI.Box(r, "", _hudBox);
+            if (ev.type != EventType.Repaint) return;
+            Theme.Rounded(r, 10f, new Color(Theme.Bg.r, Theme.Bg.g, Theme.Bg.b, 0.94f));
+            float x = r.x + pad, y = r.y + pad;
+            Color prev = Theme.LabelBold.normal.textColor;
+            Theme.LabelBold.normal.textColor = Theme.Accent;
+            GUI.Label(new Rect(x, y, pw + Theme.S(2), titleH), "POPPY", Theme.LabelBold);
+            Theme.LabelBold.normal.textColor = prev;
+            // The key badge is right-aligned, so the right edge matches the left padding.
+            Theme.Kbd.Draw(new Rect(r.xMax - pad - kw, y + Mathf.Round((titleH - Theme.S(18)) * 0.5f), kw, Theme.S(18)), new GUIContent(key), false, false, false, false);
+            y += titleH + gap;
 
-            // Draw Content with absolute pixel-perfect coordinates
-            float curY = r.y + padY;
-            float contentX = r.x + padX;
-            float contentW = width - padX * 2f;
-
-            GUI.Label(new Rect(contentX, curY, contentW, titleH),
-                "<b><color=#" + Theme.Hex(Theme.Accent) + ">POPPY</color></b>  " +
-                "<size=9><color=#" + Theme.Hex(Theme.TextDim) + ">[" + ModConfig.ToggleMenuKey.Value + "]</color></size>",
-                _hudTitle);
-            
-            curY += titleH + titleGap;
-
+            float dot = Theme.S(6);
             foreach (string e in active)
             {
-                GUI.Label(new Rect(contentX, curY, 14f, lineH), "<color=#" + Theme.Hex(Theme.On) + ">\u25CF</color>", _hudLine);
-                GUI.Label(new Rect(contentX + 14f, curY, contentW - 14f, lineH), e, _hudLine);
-                curY += lineH + lineGap;
+                Theme.Rounded(new Rect(x + Theme.S(1), y + Mathf.Round((lineH - dot) * 0.5f), dot, dot), 3f, Theme.Ok);
+                GUI.Label(new Rect(x + Theme.S(16), y, maxW - Theme.S(16), lineH), e, Theme.Small);
+                y += lineH;
             }
         }
 

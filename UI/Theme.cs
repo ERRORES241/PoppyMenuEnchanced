@@ -3,40 +3,68 @@ using UnityEngine;
 
 namespace PoppyMenu
 {
+    internal enum ThemeKind { Midnight, Violet, Ror2Gold }
+
+    // Palette, scale and styles. Everything is drawn in real screen pixels: sizes go through S(),
+    // fonts are rebuilt at the scaled size, so text stays sharp (no GUI.matrix stretching).
     internal static class Theme
     {
-        // ── Accent (user-customizable) ──────────────────────────────────
-        internal static Color Accent  = new Color32(0xE5, 0x38, 0x4A, 0xFF);
-        internal static Color Accent2 = new Color32(0xF0, 0x58, 0x4E, 0xFF);
+        // ── Palette (current theme) ─────────────────────────────────────
+        internal static Color Accent, AccentSoft, AccentText;
+        internal static Color Bg, Rail, Panel, RowHover, Line, Ctrl, CtrlHover;
+        internal static Color Text, Sub, Faint, On, Danger, Ok, Warn;
 
-        // ── Fixed palette ───────────────────────────────────────────────
-        internal static readonly Color On      = new Color32(0x2E, 0xCC, 0x71, 0xFF);
-        internal static readonly Color Danger  = new Color32(0xE7, 0x4C, 0x3C, 0xFF);
-        internal static readonly Color Text    = new Color32(0xE8, 0xE8, 0xF0, 0xFF);
-        internal static readonly Color TextDim = new Color32(0x72, 0x72, 0x8A, 0xFF);
+        internal static readonly string[] ThemeNames = { "Midnight", "Violet", "RoR2 gold" };
 
-        // ── Surface hierarchy (deep → light) ────────────────────────────
-        internal static readonly Color WindowBg  = new Color32(0x0C, 0x0C, 0x12, 0xF6);
-        internal static readonly Color SidebarBg = new Color32(0x0A, 0x0A, 0x10, 0xFF);
-        internal static readonly Color HeaderBg  = new Color32(0x12, 0x12, 0x1C, 0xFF);
-        internal static readonly Color CardBg    = new Color32(0x16, 0x16, 0x20, 0xFF);
-        internal static readonly Color RowBg     = new Color32(0x1C, 0x1C, 0x28, 0xFF);
-        internal static readonly Color SlotOff   = new Color32(0x24, 0x24, 0x30, 0xFF);
-        internal static readonly Color Hovered   = new Color32(0x2C, 0x2C, 0x3C, 0xFF);
+        // ── Scale ───────────────────────────────────────────────────────
+        internal static float Scale { get; private set; } = 1f;
+        internal static float S(float px) => Mathf.Round(px * Scale);
+        internal static int Si(float px) => Mathf.RoundToInt(px * Scale);
 
         // ── Styles ──────────────────────────────────────────────────────
-        internal static GUIStyle Window, Header, SubHeader, Label, Hint, Pill;
-        internal static GUIStyle Button, Primary, Danger_, SideItem, SideItemActive;
-        internal static GUIStyle SwitchOn, SwitchOff, Card, Search, RowButton, IconBtn, ChipLabel;
-        internal static GUIStyle ToggleBase, ValueLabel;
+        internal static GUIStyle WindowBg, RailBg, PanelBg, HoverBg, TipBg, PopupBg;
+        internal static GUIStyle Title, Crumb, Label, LabelBold, Desc, SectionTitle, Small, SmallRight, Value, ValueCenter, Logo, Kbd, Pill, RowPad;
+        internal static GUIStyle Button, Primary, DangerBtn, Seg, SegOn, Search, Input, Placeholder, ActionLabel, ActionLabelAccent, ActionLabelDanger;
 
-        // ── Textures for custom controls ────────────────────────────────
-        internal static Texture2D ToggleTrackOn, ToggleTrackOff, ToggleThumb;
-        internal static Texture2D SliderThumbTex;
-
-        // ── Private state ───────────────────────────────────────────────
         private static bool _ready;
+        private static ThemeKind _builtTheme = (ThemeKind)(-1);
+        private static float _builtScale = -1f;
+        private static Font _font;
+        private static bool _fontTried;
         private static readonly Dictionary<long, Texture2D> _texCache = new Dictionary<long, Texture2D>();
+
+        /* ═══════════════════════════════════════════════════════════════
+         *  Palettes (match tools/ui-preview/new.html)
+         * ═══════════════════════════════════════════════════════════════ */
+
+        private static Color H(uint rgb, float a = 1f) =>
+            new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, a);
+
+        private static void LoadPalette(ThemeKind kind)
+        {
+            switch (kind)
+            {
+                case ThemeKind.Violet:
+                    Accent = H(0x7765FF); AccentSoft = H(0x7765FF, 0.18f); AccentText = Color.white;
+                    Bg = H(0x131218); Rail = H(0x0D0C12); Panel = H(0x1A1922); RowHover = H(0x201F2A); Line = new Color(1, 1, 1, 0.06f);
+                    Ctrl = H(0x262433); CtrlHover = H(0x2F2C3F); Text = H(0xECEAF4); Sub = H(0x8F8AA6); Faint = H(0x5E5A72);
+                    Danger = H(0xFF5C7A); Ok = H(0x46D39A); Warn = H(0xF5C45E);
+                    break;
+                case ThemeKind.Ror2Gold:
+                    Accent = H(0xE8B44A); AccentSoft = H(0xE8B44A, 0.14f); AccentText = H(0x1A1406);
+                    Bg = H(0x12161C); Rail = H(0x0C0F14); Panel = H(0x182029); RowHover = H(0x1E2833); Line = H(0xA0BEDC, 0.08f);
+                    Ctrl = H(0x223040); CtrlHover = H(0x2A3B4E); Text = H(0xE4EAF0); Sub = H(0x8798AA); Faint = H(0x556577);
+                    Danger = H(0xE5534B); Ok = H(0x69C26A); Warn = H(0xE8B44A);
+                    break;
+                default:
+                    Accent = H(0x4F8CFF); AccentSoft = H(0x4F8CFF, 0.16f); AccentText = Color.white;
+                    Bg = H(0x111318); Rail = H(0x0B0D11); Panel = H(0x171A21); RowHover = H(0x1D212A); Line = new Color(1, 1, 1, 0.06f);
+                    Ctrl = H(0x232733); CtrlHover = H(0x2B3040); Text = H(0xE6E8EE); Sub = H(0x8A90A0); Faint = H(0x5A6070);
+                    Danger = H(0xFF5A5F); Ok = H(0x3DD68C); Warn = H(0xF2C14E);
+                    break;
+            }
+            On = Accent;
+        }
 
         /* ═══════════════════════════════════════════════════════════════
          *  Texture Generation
@@ -51,52 +79,32 @@ namespace PoppyMenu
             return t;
         }
 
-        /// <summary>
-        /// Creates a rounded-rectangle Texture2D suitable for 9-slice via GUIStyle.border.
-        /// </summary>
-        internal static Texture2D RoundedRect(int w, int h, int r, Color fill)
-        {
-            long key = HashKey(w, h, r, fill);
-            if (_texCache.TryGetValue(key, out Texture2D cached) && cached != null) return cached;
+        /// <summary>Rounded-rectangle texture for 9-slicing via GUIStyle.border.</summary>
+        internal static Texture2D RoundedRect(int w, int h, int r, Color fill) => RoundedRect(w, h, r, fill, 0, default);
 
-            var tex = new Texture2D(w, h, TextureFormat.ARGB32, false) { filterMode = FilterMode.Bilinear };
-            var px = new Color[w * h];
-            for (int py = 0; py < h; py++)
-                for (int px2 = 0; px2 < w; px2++)
-                {
-                    float a = RoundMask(px2, py, w, h, r);
-                    Color c = fill; c.a *= a;
-                    px[py * w + px2] = c;
-                }
-            tex.SetPixels(px);
-            tex.Apply(false, false);
-            tex.hideFlags = HideFlags.HideAndDontSave;
-            _texCache[key] = tex;
-            return tex;
-        }
-
-        /// <summary>
-        /// Creates a vertical-gradient rounded-rectangle texture.
-        /// </summary>
-        internal static Texture2D GradientV(int w, int h, int r, Color bottom, Color top)
+        /// <summary>Rounded rectangle with an optional inner outline of the given width.</summary>
+        internal static Texture2D RoundedRect(int w, int h, int r, Color fill, int outline, Color outlineColor)
         {
             long key;
-            unchecked { key = HashKey(w, h, r, bottom) * 31 + top.GetHashCode(); }
+            unchecked { key = HashKey(w, h, r, fill) * 31 + outline * 7919 + outlineColor.GetHashCode(); }
             if (_texCache.TryGetValue(key, out Texture2D cached) && cached != null) return cached;
 
-            var tex = new Texture2D(w, h, TextureFormat.ARGB32, false) { filterMode = FilterMode.Bilinear };
+            var tex = new Texture2D(w, h, TextureFormat.ARGB32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
             var px = new Color[w * h];
-            for (int py = 0; py < h; py++)
-            {
-                float t = h > 1 ? (float)py / (h - 1) : 0f;
-                Color rowCol = Color.Lerp(bottom, top, t);
-                for (int px2 = 0; px2 < w; px2++)
+            Color oc = new Color(Mathf.Clamp01(outlineColor.r), Mathf.Clamp01(outlineColor.g), Mathf.Clamp01(outlineColor.b), Mathf.Clamp01(outlineColor.a));
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
                 {
-                    float a = RoundMask(px2, py, w, h, r);
-                    Color c = rowCol; c.a *= a;
-                    px[py * w + px2] = c;
+                    float outer = RoundMask(x, y, w, h, r, 0);
+                    Color c = fill;
+                    if (outline > 0)
+                    {
+                        float inner = RoundMask(x, y, w, h, Mathf.Max(0, r - outline), outline);
+                        c = Over(oc, (1f - inner) * oc.a, fill);
+                    }
+                    c.a *= outer;
+                    px[y * w + x] = c;
                 }
-            }
             tex.SetPixels(px);
             tex.Apply(false, false);
             tex.hideFlags = HideFlags.HideAndDontSave;
@@ -104,9 +112,15 @@ namespace PoppyMenu
             return tex;
         }
 
-        /// <summary>
-        /// Creates a circle texture with anti-aliased edges.
-        /// </summary>
+        // "Source over" blend of colour `top` with coverage k onto `bottom`.
+        private static Color Over(Color top, float k, Color bottom)
+        {
+            float a = k + bottom.a * (1f - k);
+            if (a <= 0f) return new Color(top.r, top.g, top.b, 0f);
+            float wb = bottom.a * (1f - k);
+            return new Color((top.r * k + bottom.r * wb) / a, (top.g * k + bottom.g * wb) / a, (top.b * k + bottom.b * wb) / a, a);
+        }
+
         internal static Texture2D Circle(int size, Color fill)
         {
             var tex = new Texture2D(size, size, TextureFormat.ARGB32, false) { filterMode = FilterMode.Bilinear };
@@ -116,8 +130,7 @@ namespace PoppyMenu
                 for (int px2 = 0; px2 < size; px2++)
                 {
                     float dx = px2 - c, dy = py - c;
-                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                    float a = Mathf.Clamp01(c + 0.5f - dist);
+                    float a = Mathf.Clamp01(c + 0.5f - Mathf.Sqrt(dx * dx + dy * dy));
                     Color col = fill; col.a *= a;
                     px[py * size + px2] = col;
                 }
@@ -127,22 +140,21 @@ namespace PoppyMenu
             return tex;
         }
 
-        /// <summary>
-        /// Returns 0..1 alpha for a pixel in a rounded-corner rectangle.
-        /// </summary>
-        private static float RoundMask(int x, int y, int w, int h, int r)
+        // Alpha of a pixel inside a rounded rect inset by `inset` px on every side.
+        private static float RoundMask(int x, int y, int w, int h, int r, int inset)
         {
+            float fx = x + 0.5f, fy = y + 0.5f;
+            float l = inset, t = inset, rr = w - inset, b = h - inset;
+            if (fx < l || fx > rr || fy < t || fy > b)
+            {
+                float ex = Mathf.Max(l - fx, 0f, fx - rr), ey = Mathf.Max(t - fy, 0f, fy - b);
+                // Distance is measured from the pixel centre: a pixel half a pixel outside is fully outside.
+                return Mathf.Clamp01(0.5f - Mathf.Max(ex, ey));
+            }
             if (r <= 0) return 1f;
-            float cx, cy;
-            if      (x < r     && y < r)     { cx = r - 0.5f;     cy = r - 0.5f; }
-            else if (x >= w - r && y < r)     { cx = w - r - 0.5f; cy = r - 0.5f; }
-            else if (x < r     && y >= h - r) { cx = r - 0.5f;     cy = h - r - 0.5f; }
-            else if (x >= w - r && y >= h - r) { cx = w - r - 0.5f; cy = h - r - 0.5f; }
-            else return 1f;
-
-            float dx = x - cx, dy = y - cy;
-            float dist = Mathf.Sqrt(dx * dx + dy * dy);
-            return Mathf.Clamp01(r - dist + 0.5f);
+            float cx = Mathf.Clamp(fx, l + r, rr - r), cy = Mathf.Clamp(fy, t + r, b - r);
+            float dx = fx - cx, dy = fy - cy;
+            return Mathf.Clamp01(r - Mathf.Sqrt(dx * dx + dy * dy) + 0.5f);
         }
 
         private static long HashKey(int w, int h, int r, Color c)
@@ -158,6 +170,10 @@ namespace PoppyMenu
             }
         }
 
+        // 9-sliceable rounded texture of radius r (already in pixels).
+        private static Texture2D Round(int r, Color fill) => RoundedRect(r * 2 + 2, r * 2 + 2, r, fill);
+        private static Texture2D RoundOutline(int r, Color fill, int outline, Color oc) => RoundedRect(r * 2 + 2, r * 2 + 2, r, fill, outline, oc);
+
         /* ═══════════════════════════════════════════════════════════════
          *  Drawing Helpers
          * ═══════════════════════════════════════════════════════════════ */
@@ -170,227 +186,167 @@ namespace PoppyMenu
             GUI.color = prev;
         }
 
-        internal static void DrawTex(Rect r, Texture2D tex)
+        internal static void Box(Rect r, GUIStyle style)
         {
-            if (tex != null) GUI.DrawTexture(r, tex);
+            if (Event.current.type == EventType.Repaint) style.Draw(r, GUIContent.none, false, false, false, false);
         }
+
+        private static readonly GUIStyle _roundStyle = new GUIStyle();
+
+        internal static void Rounded(Rect r, float radius, Color c)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            int rp = Mathf.Max(1, Mathf.Min(Si(radius), (int)(Mathf.Min(r.width, r.height) * 0.5f)));
+            _roundStyle.normal.background = Round(rp, c);
+            int b = rp;
+            _roundStyle.border.left = b; _roundStyle.border.right = b; _roundStyle.border.top = b; _roundStyle.border.bottom = b;
+            _roundStyle.Draw(r, GUIContent.none, false, false, false, false);
+        }
+
+        internal static string Hex(Color c) => ColorUtility.ToHtmlStringRGB(c);
 
         /* ═══════════════════════════════════════════════════════════════
          *  Initialization
          * ═══════════════════════════════════════════════════════════════ */
 
+        // Called every OnGUI: picks up theme and scale changes.
         internal static void EnsureInit()
         {
-            if (_ready) return;
+            ThemeKind kind = ModConfig.MenuTheme != null ? ModConfig.MenuTheme.Value : ThemeKind.Midnight;
+            float auto = ModConfig.UiAutoScale == null || ModConfig.UiAutoScale.Value ? Mathf.Max(Screen.height, 480) / 1080f : 1f;
+            float manual = ModConfig.UiScale != null ? Mathf.Clamp(ModConfig.UiScale.Value, 0.6f, 2f) : 1f;
+            float scale = Mathf.Clamp(Mathf.Round(auto * manual * 20f) / 20f, 0.5f, 4f);
+
+            if (_ready && kind == _builtTheme && Mathf.Approximately(scale, _builtScale)) return;
             _ready = true;
+            _builtTheme = kind;
+            _builtScale = scale;
+            Scale = scale;
+            LoadPalette(kind);
+            BuildStyles();
+        }
+
+        private static Font UiFont()
+        {
+            if (_fontTried) return _font;
+            _fontTried = true;
+            try
+            {
+                var installed = new HashSet<string>(Font.GetOSInstalledFontNames());
+                foreach (string name in new[] { "Segoe UI", "Arial" })
+                    if (installed.Contains(name)) { _font = Font.CreateDynamicFontFromOSFont(name, 16); _fontLift = name == "Segoe UI" ? 0.15f : 0.06f; break; }
+            }
+            catch (System.Exception e) { Log.Error("UI font: " + e.Message); _font = null; }
+            return _font;
+        }
+
+        // Segoe UI has a tall line box, so IMGUI centres its glyphs a few pixels low. Lift text by a share of the font size.
+        private static float _fontLift;
+        private static Vector2 Lift(int pixelSize) => new Vector2(0f, -Mathf.Round(pixelSize * _fontLift));
+
+        private static GUIStyle TextStyle(int size, Color color, FontStyle fs = FontStyle.Normal, TextAnchor anchor = TextAnchor.MiddleLeft, bool wrap = false)
+        {
+            var s = new GUIStyle(GUI.skin.label)
+            {
+                font = UiFont() ?? GUI.skin.label.font,
+                fontSize = Si(size), fontStyle = fs, alignment = anchor, wordWrap = wrap, richText = true,
+                padding = new RectOffset(0, 0, 0, 0), margin = new RectOffset(0, 0, 0, 0),
+                clipping = TextClipping.Clip
+            };
+            s.normal.textColor = color;
+            s.hover.textColor = color;
+            UiFont();
+            s.contentOffset = Lift(s.fontSize);
+            return s;
+        }
+
+        private static GUIStyle Btn(Color fill, Color hover, Color text, int fontSize = 12, FontStyle fs = FontStyle.Normal)
+        {
+            int r = Si(7);
+            var s = TextStyle(fontSize, text, fs, TextAnchor.MiddleCenter);
+            s.normal.background = Round(r, fill);
+            s.hover.background = Round(r, hover);
+            s.active.background = Round(r, hover);
+            s.hover.textColor = text; s.active.textColor = text;
+            s.border = new RectOffset(r, r, r, r);
+            s.padding = new RectOffset(Si(12), Si(12), 0, 0);
+            s.clipping = TextClipping.Clip;
+            return s;
+        }
+
+        private static void BuildStyles()
+        {
             _texCache.Clear();
 
-            // ── Derived colours ─────────────────────────────────────
-            Color accentDim = new Color(Accent.r, Accent.g, Accent.b, 0.35f);
-            Color onDim     = new Color(On.r, On.g, On.b, 0.18f);
-            Color onHov     = new Color(On.r, On.g, On.b, 0.28f);
-            Color dangerDim = new Color(Danger.r, Danger.g, Danger.b, 0.80f);
+            WindowBg = new GUIStyle { border = new RectOffset(Si(12), Si(12), Si(12), Si(12)) };
+            WindowBg.normal.background = RoundOutline(Si(12), Bg, Mathf.Max(1, Si(1)), Line + new Color(0, 0, 0, 0.04f));
+            RailBg = new GUIStyle { border = new RectOffset(Si(12), Si(12), Si(12), Si(12)) };
+            RailBg.normal.background = Round(Si(12), Rail);
+            PanelBg = new GUIStyle { border = new RectOffset(Si(10), Si(10), Si(10), Si(10)) };
+            PanelBg.normal.background = Round(Si(10), Panel);
+            HoverBg = new GUIStyle { border = new RectOffset(Si(8), Si(8), Si(8), Si(8)) };
+            HoverBg.normal.background = Round(Si(8), RowHover);
+            PopupBg = new GUIStyle { border = new RectOffset(Si(8), Si(8), Si(8), Si(8)) };
+            PopupBg.normal.background = RoundOutline(Si(8), Color.Lerp(Panel, Ctrl, 0.5f), Mathf.Max(1, Si(1)), Line + new Color(1, 1, 1, 0.05f));
+            TipBg = TextStyle(11, Text, wrap: true);
+            TipBg.normal.background = Round(Si(6), new Color(0, 0, 0, 0.92f));
+            TipBg.border = new RectOffset(Si(6), Si(6), Si(6), Si(6));
+            TipBg.padding = new RectOffset(Si(8), Si(8), Si(5), Si(5));
 
-            // ── Rounded 9-slice textures ────────────────────────────
-            const int BR = 6;   // button radius
-            const int CR = 6;   // card radius
+            Title = TextStyle(17, Text, FontStyle.Bold);
+            Crumb = TextStyle(13, Faint);
+            Label = TextStyle(13, Text);
+            LabelBold = TextStyle(13, Text, FontStyle.Bold);
+            Desc = TextStyle(11, Sub, wrap: true);
+            Desc.alignment = TextAnchor.UpperLeft;
+            SectionTitle = TextStyle(11, Faint, FontStyle.Bold);
+            Small = TextStyle(11, Faint);
+            SmallRight = TextStyle(11, Faint, anchor: TextAnchor.MiddleRight);
+            Value = TextStyle(12, Sub, anchor: TextAnchor.MiddleRight);
+            ValueCenter = TextStyle(12, Text, FontStyle.Bold, TextAnchor.MiddleCenter);
+            RowPad = new GUIStyle { padding = new RectOffset(Si(14), Si(14), Si(8), Si(8)) };
+            Logo = TextStyle(16, AccentText, FontStyle.Bold, TextAnchor.MiddleCenter);
+            Kbd = TextStyle(11, Sub, anchor: TextAnchor.MiddleCenter);
+            Kbd.normal.background = RoundOutline(Si(5), new Color(0, 0, 0, 0), Mathf.Max(1, Si(1)), Line + new Color(1, 1, 1, 0.04f));
+            Kbd.border = new RectOffset(Si(5), Si(5), Si(5), Si(5));
+            Kbd.padding = new RectOffset(Si(6), Si(6), 0, 0);
+            Pill = TextStyle(9, Ok, FontStyle.Bold, TextAnchor.MiddleCenter);
+            Pill.normal.background = Round(Si(5), new Color(Ok.r, Ok.g, Ok.b, 0.14f));
+            Pill.border = new RectOffset(Si(5), Si(5), Si(5), Si(5));
 
-            Texture2D winTex   = RoundedRect(24, 24, 10, WindowBg);
-            Texture2D cardTex  = RoundedRect(20, 20, CR, CardBg);
-            Texture2D btnTex   = RoundedRect(16, 16, BR, SlotOff);
-            Texture2D btnHov   = RoundedRect(16, 16, BR, Hovered);
-            Texture2D btnAct   = RoundedRect(16, 16, BR, accentDim);
-            Texture2D priTex   = RoundedRect(16, 16, BR, Accent);
-            Texture2D priHov   = RoundedRect(16, 16, BR, Accent2);
-            Texture2D danTex   = RoundedRect(16, 16, BR, dangerDim);
-            Texture2D danHov   = RoundedRect(16, 16, BR, Danger);
-            Texture2D sideNorm = Solid(new Color(0, 0, 0, 0));
-            Texture2D sideAct  = RoundedRect(16, 16, 5, CardBg);
-            Texture2D swOnTex  = RoundedRect(16, 16, BR, onDim);
-            Texture2D swOnHov  = RoundedRect(16, 16, BR, onHov);
-            Texture2D swOffTex = RoundedRect(16, 16, BR, RowBg);
-            Texture2D swOffHov = RoundedRect(16, 16, BR, Hovered);
-            Texture2D rowTex   = RoundedRect(16, 16, 4, RowBg);
-            Texture2D rowHov   = RoundedRect(16, 16, 4, Hovered);
-            Texture2D searchTx = RoundedRect(16, 16, BR, RowBg);
-            Texture2D pillTex  = RoundedRect(20, 20, 10, RowBg);
-            Texture2D togRow   = RoundedRect(16, 16, 4, new Color(RowBg.r, RowBg.g, RowBg.b, 0.5f));
-            Texture2D togRowH  = RoundedRect(16, 16, 4, Hovered);
+            Button = Btn(Ctrl, CtrlHover, Text, 12, FontStyle.Bold);
+            Primary = Btn(Accent, Color.Lerp(Accent, Color.white, 0.12f), AccentText, 12, FontStyle.Bold);
+            DangerBtn = Btn(new Color(0, 0, 0, 0), new Color(Danger.r, Danger.g, Danger.b, 0.12f), Danger, 12, FontStyle.Bold);
+            int dr = Si(7);
+            DangerBtn.normal.background = RoundOutline(dr, new Color(0, 0, 0, 0), Mathf.Max(1, Si(1)), new Color(Danger.r, Danger.g, Danger.b, 0.4f));
+            DangerBtn.hover.background = RoundOutline(dr, new Color(Danger.r, Danger.g, Danger.b, 0.12f), Mathf.Max(1, Si(1)), new Color(Danger.r, Danger.g, Danger.b, 0.6f));
+            DangerBtn.active.background = DangerBtn.hover.background;
 
-            // ── Toggle & slider control textures ────────────────────
-            ToggleTrackOn  = RoundedRect(36, 18, 9, On);
-            ToggleTrackOff = RoundedRect(36, 18, 9, SlotOff);
-            ToggleThumb    = Circle(14, Color.white);
-            SliderThumbTex = Circle(14, Accent);
+            Seg = TextStyle(12, Sub, anchor: TextAnchor.MiddleCenter);
+            Seg.hover.textColor = Text;
+            SegOn = TextStyle(12, Text, FontStyle.Bold, TextAnchor.MiddleCenter);
+            SegOn.normal.background = Round(Si(7), CtrlHover);
+            SegOn.border = new RectOffset(Si(7), Si(7), Si(7), Si(7));
 
-            // ── Border settings ─────────────────────────────────────
-            RectOffset bBtn  = new RectOffset(BR, BR, BR, BR);
-            RectOffset bCard = new RectOffset(CR, CR, CR, CR);
-            RectOffset bWin  = new RectOffset(10, 10, 10, 10);
-
-            /* ─────── Window ────────────────────────────────────────── */
-            Window = new GUIStyle(GUI.skin.box)
-            {
-                padding = new RectOffset(0, 0, 0, 0),
-                margin  = new RectOffset(0, 0, 0, 0),
-                border  = bWin
-            };
-            Window.normal.background = winTex;
-
-            /* ─────── Text styles ───────────────────────────────────── */
-            Header = new GUIStyle(GUI.skin.label)
-            {
-                fontStyle = FontStyle.Bold, fontSize = 16,
-                alignment = TextAnchor.MiddleLeft, richText = true,
-                wordWrap = false
-            };
-            Header.normal.textColor = Text;
-
-            SubHeader = new GUIStyle(GUI.skin.label)
-            {
-                fontStyle = FontStyle.Bold, fontSize = 12,
-                alignment = TextAnchor.MiddleLeft, richText = true,
-                wordWrap = false
-            };
-            SubHeader.normal.textColor = Accent2;
-
-            Label = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 12, wordWrap = true, richText = true,
-                alignment = TextAnchor.MiddleLeft
-            };
-            Label.normal.textColor = Text;
-
-            Hint = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 10, wordWrap = true, richText = true,
-                alignment = TextAnchor.MiddleLeft
-            };
-            Hint.normal.textColor = TextDim;
-
-            Pill = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 10, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                padding = new RectOffset(10, 10, 3, 3),
-                richText = true, border = new RectOffset(10, 10, 10, 10)
-            };
-            Pill.normal.textColor = Text;
-            Pill.normal.background = pillTex;
-
-            ValueLabel = new GUIStyle(Label) { alignment = TextAnchor.MiddleCenter };
-
-            /* ─────── Buttons ───────────────────────────────────────── */
-            Button = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 12, alignment = TextAnchor.MiddleCenter,
-                padding = new RectOffset(10, 10, 7, 7),
-                margin  = new RectOffset(2, 2, 2, 2),
-                border  = bBtn
-            };
-            Button.normal.background = btnTex;  Button.normal.textColor = Text;
-            Button.hover.background  = btnHov;  Button.hover.textColor  = Color.white;
-            Button.active.background = btnAct;
-
-            Primary = new GUIStyle(Button);
-            Primary.normal.background = priTex;  Primary.normal.textColor = Color.white;
-            Primary.hover.background  = priHov;
-
-            Danger_ = new GUIStyle(Button);
-            Danger_.normal.background = danTex;  Danger_.normal.textColor = Color.white;
-            Danger_.hover.background  = danHov;
-
-            /* ─────── Sidebar ───────────────────────────────────────── */
-            SideItem = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 12, alignment = TextAnchor.MiddleLeft,
-                padding = new RectOffset(16, 8, 8, 8),
-                margin  = new RectOffset(0, 0, 1, 1),
-                border  = new RectOffset(5, 5, 5, 5)
-            };
-            SideItem.normal.background = sideNorm; SideItem.normal.textColor = TextDim;
-            SideItem.hover.background  = rowHov;   SideItem.hover.textColor  = Text;
-            SideItem.active.background = sideAct;
-
-            SideItemActive = new GUIStyle(SideItem);
-            SideItemActive.normal.background = sideAct;
-            SideItemActive.normal.textColor  = Color.white;
-            SideItemActive.fontStyle = FontStyle.Bold;
-
-            /* ─────── Toggle rows (fallback styles kept for compat) ── */
-            SwitchOn = new GUIStyle(Button)
-            {
-                alignment = TextAnchor.MiddleLeft,
-                padding   = new RectOffset(10, 52, 7, 7)
-            };
-            SwitchOn.normal.background = swOnTex;  SwitchOn.normal.textColor = Color.white;
-            SwitchOn.hover.background  = swOnHov;
-
-            SwitchOff = new GUIStyle(SwitchOn);
-            SwitchOff.normal.background = swOffTex; SwitchOff.normal.textColor = TextDim;
-            SwitchOff.hover.background  = swOffHov;
-
-            ToggleBase = new GUIStyle(GUI.skin.button)
-            {
-                padding = new RectOffset(0, 0, 0, 0),
-                margin  = new RectOffset(0, 0, 1, 1),
-                border  = new RectOffset(4, 4, 4, 4)
-            };
-            ToggleBase.normal.background = togRow;
-            ToggleBase.hover.background  = togRowH;
-            ToggleBase.active.background = togRowH;
-            ToggleBase.normal.textColor  = new Color(0, 0, 0, 0);
-            ToggleBase.hover.textColor   = new Color(0, 0, 0, 0);
-            ToggleBase.active.textColor  = new Color(0, 0, 0, 0);
-
-            /* ─────── Cards & containers ────────────────────────────── */
-            Card = new GUIStyle(GUI.skin.box)
-            {
-                padding = new RectOffset(12, 12, 10, 10),
-                margin  = new RectOffset(0, 0, 3, 3),
-                border  = bCard
-            };
-            Card.normal.background = cardTex;
-
-            /* ─────── Text fields ───────────────────────────────────── */
             Search = new GUIStyle(GUI.skin.textField)
             {
-                fontSize = 12,
-                padding  = new RectOffset(10, 10, 6, 6),
-                border   = bBtn
+                font = UiFont() ?? GUI.skin.textField.font,
+                fontSize = Si(12), alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(Si(30), Si(10), 0, 0), margin = new RectOffset(0, 0, 0, 0),
+                border = new RectOffset(Si(8), Si(8), Si(8), Si(8))
             };
-            Search.normal.textColor  = Text;
-            Search.normal.background = searchTx;
-            Search.focused.textColor  = Text;
-            Search.focused.background = searchTx;
-            Search.hover.background   = searchTx;
+            Search.contentOffset = Lift(Search.fontSize);
+            Texture2D sTex = Round(Si(8), Ctrl), sFocus = RoundOutline(Si(8), Ctrl, Mathf.Max(1, Si(1)), new Color(Accent.r, Accent.g, Accent.b, 0.6f));
+            Search.normal.background = sTex; Search.hover.background = sTex;
+            Search.focused.background = sFocus; Search.onFocused.background = sFocus;
+            Search.normal.textColor = Search.hover.textColor = Search.focused.textColor = Search.onFocused.textColor = Text;
+            Placeholder = TextStyle(12, Faint);
+            Input = new GUIStyle(Search) { padding = new RectOffset(Si(10), Si(10), 0, 0) };
 
-            /* ─────── Row buttons (picker list) ─────────────────────── */
-            RowButton = new GUIStyle(Button)
-            {
-                alignment = TextAnchor.MiddleLeft, fontSize = 12,
-                padding   = new RectOffset(28, 8, 6, 6),
-                border    = new RectOffset(4, 4, 4, 4)
-            };
-            RowButton.normal.background = rowTex;
-            RowButton.hover.background  = rowHov;
+            ActionLabel = TextStyle(13, Text);
+            ActionLabelAccent = TextStyle(13, Accent, FontStyle.Bold);
+            ActionLabelDanger = TextStyle(13, Danger);
 
-            /* ─────── Icon buttons ──────────────────────────────────── */
-            IconBtn = new GUIStyle(Button)
-            {
-                fontSize = 13, fontStyle = FontStyle.Bold,
-                padding  = new RectOffset(0, 0, 2, 2),
-                alignment = TextAnchor.MiddleCenter
-            };
-
-            /* ─────── Chip label ────────────────────────────────────── */
-            ChipLabel = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 11, alignment = TextAnchor.MiddleLeft, richText = true
-            };
-            ChipLabel.normal.textColor = Text;
-
-            /* ─────── Scrollbar customisation ───────────────────────── */
             ApplyScrollbarSkin();
         }
 
@@ -399,34 +355,22 @@ namespace PoppyMenu
             try
             {
                 GUISkin skin = GUI.skin;
-                Texture2D trackTex = Solid(new Color(0f, 0f, 0f, 0.06f));
-                Texture2D thumbTex = RoundedRect(8, 24, 4, new Color32(0x50, 0x50, 0x60, 0xA0));
+                skin.verticalScrollbar.normal.background = Solid(new Color(0, 0, 0, 0));
+                skin.verticalScrollbar.fixedWidth = Mathf.Max(3, Si(4));
+                skin.verticalScrollbar.border = new RectOffset(0, 0, 0, 0);
+                skin.verticalScrollbar.margin = new RectOffset(Si(4), Si(2), 0, 0);
+                skin.verticalScrollbar.padding = new RectOffset(0, 0, 0, 0);
 
-                skin.verticalScrollbar.normal.background = trackTex;
-                skin.verticalScrollbar.fixedWidth = 6;
-                skin.verticalScrollbar.margin = new RectOffset(0, 2, 0, 0);
+                int r = Mathf.Max(1, Si(2));
+                skin.verticalScrollbarThumb.normal.background = RoundedRect(r * 2 + 2, r * 2 + 2, r, CtrlHover);
+                skin.verticalScrollbarThumb.fixedWidth = Mathf.Max(3, Si(4));
+                skin.verticalScrollbarThumb.border = new RectOffset(r, r, r, r);
 
-                skin.verticalScrollbarThumb.normal.background = thumbTex;
-                skin.verticalScrollbarThumb.fixedWidth = 6;
-                skin.verticalScrollbarThumb.border = new RectOffset(4, 4, 4, 4);
-
+                skin.verticalScrollbarUpButton.fixedHeight = 0; skin.verticalScrollbarDownButton.fixedHeight = 0;
                 skin.horizontalScrollbar.fixedHeight = 0;
                 skin.horizontalScrollbarThumb.fixedHeight = 0;
             }
             catch { }
         }
-
-        /* ═══════════════════════════════════════════════════════════════
-         *  Accent Management
-         * ═══════════════════════════════════════════════════════════════ */
-
-        internal static void ApplyAccent(Color c)
-        {
-            Accent  = c;
-            Accent2 = Color.Lerp(c, Color.white, 0.18f);
-            _ready  = false;
-        }
-
-        internal static string Hex(Color c) => ColorUtility.ToHtmlStringRGB(c);
     }
 }

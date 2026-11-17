@@ -36,6 +36,11 @@
     <Compile Remove="src/**/*.cs" />
   </ItemGroup>
 
+  <!-- Lucide icons (see THIRD_PARTY_NOTICES.md), loaded by UI/Icons.cs as PoppyMenu.Icons.<name>.png -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/Icons/*.png" LogicalName="PoppyMenu.Icons.%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <Target Name="PackageMod" AfterTargets="Build">
     <PropertyGroup>
       <AuthorName>ERRORESSS</AuthorName>
@@ -46,7 +51,7 @@
 
     <MakeDir Directories="$(DistDir);$(StagingDir)" />
 
-    <Copy SourceFiles="manifest.json;icon.png;README.md;CHANGELOG.md;LICENSE;$(TargetPath)" DestinationFolder="$(StagingDir)" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="manifest.json;icon.png;README.md;CHANGELOG.md;LICENSE;THIRD_PARTY_NOTICES.md;$(TargetPath)" DestinationFolder="$(StagingDir)" SkipUnchangedFiles="false" />
 
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Compress-Archive -Path '$(StagingDir)*' -DestinationPath '$(DistDir)$(ZipFileName)' -Force&quot;" />
     <RemoveDir Directories="$(StagingDir)" />

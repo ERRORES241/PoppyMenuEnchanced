@@ -85,7 +85,7 @@ namespace PoppyMenu
             FovOverride = Widgets.Toggle("FOV Changer", FovOverride);
             if (FovOverride)
             {
-                FovValue = Widgets.Slider("Field of View", FovValue, 60f, 140f);
+                FovValue = Widgets.Slider("Field of View", FovValue, 60f, 140f, format: "0\u00B0");
             }
             Widgets.SectionEnd();
 
@@ -102,8 +102,7 @@ namespace PoppyMenu
                 EspFilterBarrels = Widgets.Toggle("  Barrels", EspFilterBarrels);
                 EspFilterOther = Widgets.Toggle("  Other", EspFilterOther);
             }
-            EspTeleporter = Widgets.Toggle("Teleporter & Portals", EspTeleporter);
-            Widgets.Hint("Markers draw through walls while in a run.");
+            EspTeleporter = Widgets.Toggle("Teleporter & Portals", EspTeleporter, "Markers draw through walls while in a run.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Display");
@@ -111,9 +110,9 @@ namespace PoppyMenu
             ShowDistance = Widgets.Toggle("Show distance", ShowDistance);
             ShowEnemyHealth = Widgets.Toggle("Show enemy health", ShowEnemyHealth);
             ShowOutline = Widgets.Toggle("Text outline", ShowOutline);
-            FontSize = Widgets.Slider("Font size", FontSize, 8f, 24f);
-            MaxDistance = Widgets.Slider("Max distance (0 = unlimited)", MaxDistance, 0f, 500f);
-            MarkerSize = Widgets.Slider("Marker size", MarkerSize, 2f, 16f);
+            FontSize = Widgets.Slider("Font size", FontSize, 8f, 24f, format: "0");
+            MaxDistance = Widgets.Slider("Max distance", MaxDistance, 0f, 500f, "0 means unlimited.", "0 m");
+            MarkerSize = Widgets.Slider("Marker size", MarkerSize, 2f, 16f, format: "0");
             Widgets.SectionEnd();
         }
 

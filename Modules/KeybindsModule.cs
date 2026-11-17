@@ -10,14 +10,14 @@ namespace PoppyMenu
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Add a keybind");
-            Widgets.Hint("Pick any feature, then press the key or mouse button you want. Bindings fire while the menu is closed.");
-            Widgets.PickerButton("Bind a feature...", "Pick a feature", ActionRows);
-            if (Rebind.IsActive) Widgets.Hint("Now press a key or button. Esc cancels.");
+            Widgets.PickerButton("Bind a feature", "Pick a feature", ActionRows, Rebind.IsActive
+                ? "Now press a key or button. Esc cancels."
+                : "Pick any feature, then press the key or mouse button you want. Bindings fire while the menu is closed.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Your keybinds");
             if (BindStore.Binds.Count == 0)
-                Widgets.Hint("Nothing bound yet.");
+                Widgets.Note("Nothing bound yet.");
 
             for (int i = BindStore.Binds.Count - 1; i >= 0; i--)
             {
@@ -30,14 +30,10 @@ namespace PoppyMenu
                     label = bound != null ? "Macro: " + bound.Name : "Macro (deleted)";
                 }
 
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(label, Theme.Label, GUILayout.ExpandWidth(true));
                 Bind captured = b;
-                if (GUILayout.Button(b.Key == KeyCode.None ? "set key" : b.Key.ToString(), Theme.Button, GUILayout.Width(120)))
-                    Rebind.Capture(kc => { captured.Key = kc; BindStore.Save(); });
-                if (GUILayout.Button("X", Theme.Danger_, GUILayout.Width(28)))
-                    BindStore.Remove(b);
-                GUILayout.EndHorizontal();
+                Widgets.Buttons(label, null,
+                    (b.Key == KeyCode.None ? "Set key" : b.Key.ToString(), () => Rebind.Capture(kc => { captured.Key = kc; BindStore.Save(); })),
+                    ("Remove", () => BindStore.Remove(captured)));
             }
 
             if (BindStore.Binds.Count > 0)

@@ -14,27 +14,22 @@ namespace PoppyMenu
         internal static void Draw(Action<CustomStep> onAdd)
         {
             _amount = Widgets.IntStepper("Count / amount", _amount, 1, 1, 1000000000);
-            _duration = Widgets.Slider("Buff duration (0 = permanent)", _duration, 0f, 120f);
+            _duration = Widgets.Slider("Buff duration", _duration, 0f, 120f, "0 means permanent.", "0 s");
             _ally = Widgets.Toggle("Spawn as ally (your team)", _ally);
 
-            GUILayout.BeginHorizontal();
-            Widgets.Button("Item", () => ItemPicker.Open("Pick an item", idx => Done(onAdd, Steps.Item((int)idx, _amount))));
-            Widgets.Button("Buff", () => ListPicker.Open("Pick a buff", BuffRows(onAdd)));
-            Widgets.Button("Equipment", () => ListPicker.Open("Pick equipment", EquipRows(onAdd)));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            Widgets.Button("Spawn", () => ListPicker.Open("Pick something to spawn", SpawnRows(onAdd)));
-            Widgets.Button("Feature", () => ListPicker.Open("Pick a feature", FeatureRows(onAdd)));
-            Widgets.Button("Macro", () => ListPicker.Open("Pick a macro", MacroRows(onAdd)));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            Widgets.Button("Money +" + _amount, () => Done(onAdd, Steps.Money(_amount)));
-            Widgets.Button("XP +" + _amount, () => Done(onAdd, Steps.Xp(_amount)));
-            Widgets.Button("Lunar +" + _amount, () => Done(onAdd, Steps.Lunar(_amount)));
-            Widgets.Button("Heal full", () => Done(onAdd, Steps.Heal(0)));
-            GUILayout.EndHorizontal();
+            Widgets.ButtonGrid(
+                ("Item", () => ItemPicker.Open("Pick an item", idx => Done(onAdd, Steps.Item((int)idx, _amount)))),
+                ("Buff", () => ListPicker.Open("Pick a buff", BuffRows(onAdd))),
+                ("Equipment", () => ListPicker.Open("Pick equipment", EquipRows(onAdd))));
+            Widgets.ButtonGrid(
+                ("Spawn", () => ListPicker.Open("Pick something to spawn", SpawnRows(onAdd))),
+                ("Feature", () => ListPicker.Open("Pick a feature", FeatureRows(onAdd))),
+                ("Macro", () => ListPicker.Open("Pick a macro", MacroRows(onAdd))));
+            Widgets.ButtonGrid(
+                ("Money +" + _amount, () => Done(onAdd, Steps.Money(_amount))),
+                ("XP +" + _amount, () => Done(onAdd, Steps.Xp(_amount))),
+                ("Lunar +" + _amount, () => Done(onAdd, Steps.Lunar(_amount))),
+                ("Heal full", () => Done(onAdd, Steps.Heal(0))));
         }
 
         private static void Done(Action<CustomStep> onAdd, CustomStep s) { onAdd(s); Notify.Push("Added " + s.Label); }

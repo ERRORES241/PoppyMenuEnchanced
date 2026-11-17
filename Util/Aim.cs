@@ -411,15 +411,39 @@ namespace PoppyMenu
             GUI.Label(new Rect(sp.x - 40f, y - s - 16f, 80f, 14f), "LOCKED", _label);
         }
 
+        // 1x4 texture with transparent top and bottom rows: bilinear filtering fades the line edges,
+        // which gives rotated segments anti-aliased sides.
+        private static Texture2D _aaLine;
+
+        private static Texture2D AaLine()
+        {
+            if (_aaLine != null) return _aaLine;
+            _aaLine = new Texture2D(1, 4, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            _aaLine.SetPixels(new[] { new Color(1, 1, 1, 0), Color.white, Color.white, new Color(1, 1, 1, 0) });
+            _aaLine.Apply(false, false);
+            return _aaLine;
+        }
+
         private static void DrawLine(Vector2 p1, Vector2 p2, Color color, float width)
         {
             Matrix4x4 prevMatrix = GUI.matrix;
+            Color prevColor = GUI.color;
             Vector2 d = p2 - p1;
             float angle = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
             float length = d.magnitude;
 
             GUIUtility.RotateAroundPivot(angle, p1);
-            Theme.Fill(new Rect(p1.x, p1.y - width * 0.5f, length, width), color);
+            GUI.color = color;
+            // Two extra pixels of height hold the edge fade. Segments meet end to end without overlap:
+            // overlapping translucent ends would show up as brighter beads along the ring.
+            float h = width + 2f;
+            GUI.DrawTexture(new Rect(p1.x, p1.y - h * 0.5f, length, h), AaLine());
+            GUI.color = prevColor;
             GUI.matrix = prevMatrix;
         }
 
@@ -432,12 +456,17 @@ namespace PoppyMenu
 
             float cx = Screen.width * 0.5f, cy = Screen.height * 0.5f;
             Color col = new Color(Theme.Accent.r, Theme.Accent.g, Theme.Accent.b, 0.75f);
-            const int seg = 64;
+            if (Event.current.type != EventType.Repaint) return;
+
+            // About 4 px per segment: the chord bends by well under a tenth of a pixel and the angle
+            // between neighbours is below one degree, so the joints need no overlap.
+            int seg = Mathf.Clamp(Mathf.RoundToInt(2f * Mathf.PI * r / 4f), 64, 720);
+            float step = Mathf.PI * 2f / seg;
             Vector2 prevPoint = new Vector2(cx + r, cy);
             for (int i = 1; i <= seg; i++)
             {
-                float a = i / (float)seg * Mathf.PI * 2f;
-                Vector2 nextPoint = new Vector2(cx + Mathf.Cos(a) * r, cy + Mathf.Sin(a) * r);
+                float a = i * step;
+                Vector2 nextPoint = i == seg ? new Vector2(cx + r, cy) : new Vector2(cx + Mathf.Cos(a) * r, cy + Mathf.Sin(a) * r);
                 DrawLine(prevPoint, nextPoint, col, 1.5f);
                 prevPoint = nextPoint;
             }

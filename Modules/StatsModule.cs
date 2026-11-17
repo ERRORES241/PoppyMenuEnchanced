@@ -126,38 +126,38 @@ namespace PoppyMenu
             Widgets.SectionBegin("Stat Multipliers & Bonuses");
 
             DamageOn = Widgets.Toggle("Damage Multiplier", DamageOn);
-            DamageMult = Widgets.Slider("Damage x", DamageMult, 1f, 100f);
+            if (DamageOn) DamageMult = Widgets.Slider("Damage", DamageMult, 1f, 100f, format: "0.#x");
 
             AttackSpeedOn = Widgets.Toggle("Attack Speed Multiplier", AttackSpeedOn);
-            AttackSpeedMult = Widgets.Slider("Atk Spd x", AttackSpeedMult, 1f, 100f);
+            if (AttackSpeedOn) AttackSpeedMult = Widgets.Slider("Attack speed", AttackSpeedMult, 1f, 100f, format: "0.#x");
 
             MoveSpeedOn = Widgets.Toggle("Move Speed Multiplier", MoveSpeedOn);
-            MoveSpeedMult = Widgets.Slider("Move x", MoveSpeedMult, 1f, 100f);
+            if (MoveSpeedOn) MoveSpeedMult = Widgets.Slider("Move speed", MoveSpeedMult, 1f, 100f, format: "0.#x");
 
             ArmorOn = Widgets.Toggle("Armor Bonus", ArmorOn);
-            ArmorBonus = Widgets.Slider("Armor +", ArmorBonus, 0f, 1000f);
+            if (ArmorOn) ArmorBonus = Widgets.Slider("Armor", ArmorBonus, 0f, 1000f, format: "+0");
 
             CritOn = Widgets.Toggle("Crit Chance Bonus", CritOn);
-            CritBonus = Widgets.Slider("Crit +%", CritBonus, 0f, 1000f);
+            if (CritOn) CritBonus = Widgets.Slider("Crit chance", CritBonus, 0f, 1000f, format: "+0'%'");
 
             MaxHealthOn = Widgets.Toggle("Max Health Multiplier", MaxHealthOn);
-            MaxHealthMult = Widgets.Slider("Health x", MaxHealthMult, 1f, 100f);
+            if (MaxHealthOn) MaxHealthMult = Widgets.Slider("Max health", MaxHealthMult, 1f, 100f, format: "0.#x");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Current Stats");
             if (PlayerContext.HasBody)
             {
                 CharacterBody b = PlayerContext.Body;
-                Widgets.Label($"Max Health: {b.maxHealth:0}");
-                Widgets.Label($"Damage: {b.damage:0.##}");
-                Widgets.Label($"Attack Speed: {b.attackSpeed:0.##}");
-                Widgets.Label($"Armor: {b.armor:0.##}");
-                Widgets.Label($"Crit Chance: {b.crit:0.##}%");
-                Widgets.Label($"Move Speed: {b.moveSpeed:0.##}");
+                Widgets.Value("Max Health", b.maxHealth.ToString("0"));
+                Widgets.Value("Damage", b.damage.ToString("0.##"));
+                Widgets.Value("Attack Speed", b.attackSpeed.ToString("0.##"));
+                Widgets.Value("Armor", b.armor.ToString("0.##"));
+                Widgets.Value("Crit Chance", b.crit.ToString("0.##") + "%");
+                Widgets.Value("Move Speed", b.moveSpeed.ToString("0.##"));
             }
             else
             {
-                Widgets.Label("(no body)");
+                Widgets.Note("No body.");
             }
             Widgets.SectionEnd();
         }

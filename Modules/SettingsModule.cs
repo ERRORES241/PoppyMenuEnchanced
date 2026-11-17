@@ -6,26 +6,44 @@ namespace PoppyMenu
     {
         internal override string Name => "Settings";
 
+        private static float _pendingScale = -1f;
+
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Keybinds");
-            Widgets.KeybindRow("Open Menu", ModConfig.ToggleMenuKey);
-            if (Rebind.IsActive) Widgets.Hint("Press any key or mouse button (right/middle/side) to bind. Esc cancels. X clears.");
-            Widgets.Hint("Bind any feature to any key over in the Keybinds tab.");
+            Widgets.KeybindRow("Open Menu", ModConfig.ToggleMenuKey, Rebind.IsActive
+                ? "Press any key or mouse button (right/middle/side) to bind. Esc cancels."
+                : "Bind any feature to any key over in the Keybinds tab.");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Display");
-            ModConfig.UiScale.Value = Widgets.Slider("UI Scale", ModConfig.UiScale.Value, 0.6f, 2f);
-            ModConfig.ShowHud.Value = Widgets.Toggle("Active-Effects HUD", ModConfig.ShowHud.Value);
-            Widgets.SectionEnd();
+            Widgets.SectionBegin("Appearance");
+            int theme = Widgets.Segmented("Theme", (int)ModConfig.MenuTheme.Value, Theme.ThemeNames);
+            if (theme != (int)ModConfig.MenuTheme.Value) ModConfig.MenuTheme.Value = (ThemeKind)theme;
 
-            DrawThemeSection();
+            ModConfig.UiAutoScale.Value = Widgets.Toggle("Scale with resolution", ModConfig.UiAutoScale.Value,
+                "Sizes the menu by screen height: 1080p is 100%, 1440p 133%, 4K 200%.");
+
+            // Applied when the slider is released, otherwise the window resizes under the cursor.
+            float shown = _pendingScale > 0f ? _pendingScale : ModConfig.UiScale.Value;
+            float picked = Widgets.Slider("Menu size", shown, 0.6f, 2f, "Multiplier on top of the automatic size.", "0%");
+            if (Widgets.Dragging) _pendingScale = picked;
+            else
+            {
+                float apply = _pendingScale > 0f ? _pendingScale : picked;
+                _pendingScale = -1f;
+                apply = Mathf.Round(apply * 20f) / 20f;
+                if (!Mathf.Approximately(apply, ModConfig.UiScale.Value)) ModConfig.UiScale.Value = apply;
+            }
+
+            ModConfig.ShowHud.Value = Widgets.Toggle("Active-Effects HUD", ModConfig.ShowHud.Value,
+                "Small list of active cheats while the menu is closed. Drag it to move.");
+            Widgets.SectionEnd();
 
             Widgets.SectionBegin("Multiplayer");
-            ModConfig.AllowClientCheats.Value = Widgets.Toggle("Allow Others To Use This (host)", ModConfig.AllowClientCheats.Value);
-            Widgets.Hint("HOST: off by default, so others can't use this menu in YOUR game without permission. Turn on only if you trust the lobby.");
-            ModConfig.RequireServerForCheats.Value = Widgets.Toggle("Host-Only (skip on client)", ModConfig.RequireServerForCheats.Value);
-            Widgets.Hint("On: as a client, don't even request server-side actions, just skip them.");
+            ModConfig.AllowClientCheats.Value = Widgets.Toggle("Allow Others To Use This (host)", ModConfig.AllowClientCheats.Value,
+                "Off by default, so others can't use this menu in your game without permission. Turn on only if you trust the lobby.");
+            ModConfig.RequireServerForCheats.Value = Widgets.Toggle("Host-Only (skip on client)", ModConfig.RequireServerForCheats.Value,
+                "As a client, don't even request server-side actions, just skip them.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Maintenance");
@@ -34,28 +52,8 @@ namespace PoppyMenu
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("About");
-            Widgets.Label("Poppy Menu Enhanced  v" + PoppyPlugin.Version);
-            Widgets.Hint("Risk of Rain 2 cheat and debug menu. Single-player and private lobbies.");
-            Widgets.SectionEnd();
-        }
-
-        private static void DrawThemeSection()
-        {
-            Widgets.SectionBegin("Theme");
-            float r = ModConfig.AccentR.Value, g = ModConfig.AccentG.Value, b = ModConfig.AccentB.Value;
-            float nr = Widgets.Slider("Accent R", r, 0f, 1f);
-            float ng = Widgets.Slider("Accent G", g, 0f, 1f);
-            float nb = Widgets.Slider("Accent B", b, 0f, 1f);
-            if (nr != r || ng != g || nb != b)
-            {
-                ModConfig.AccentR.Value = nr; ModConfig.AccentG.Value = ng; ModConfig.AccentB.Value = nb;
-                Theme.ApplyAccent(new Color(nr, ng, nb));
-            }
-            Widgets.Button("Reset to poppy red", () =>
-            {
-                ModConfig.AccentR.Value = 0.898f; ModConfig.AccentG.Value = 0.219f; ModConfig.AccentB.Value = 0.290f;
-                Theme.ApplyAccent(new Color(0.898f, 0.219f, 0.290f));
-            });
+            Widgets.Value("Poppy Menu Enhanced", "v" + PoppyPlugin.Version);
+            Widgets.Note("Risk of Rain 2 cheat and debug menu. Single-player and private lobbies. Icons by Lucide (ISC).");
             Widgets.SectionEnd();
         }
     }

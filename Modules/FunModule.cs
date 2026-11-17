@@ -96,14 +96,12 @@ namespace PoppyMenu
         internal override void DrawMenu()
         {
             Widgets.SectionBegin("Railgunner");
-            RailgunnerInstaCharge = Widgets.Toggle("Instant Ult Charge", RailgunnerInstaCharge);
-            Widgets.Hint("Special skill charges instantly (0s charge time).");
-
-            RailgunnerNoUltCooldown = Widgets.Toggle("No Ult Cooldown (Special Only)", RailgunnerNoUltCooldown);
-            Widgets.Hint("Resets Special skill stock and clears 5s overheat lockout without touching other skills.");
-
-            RailgunnerUltSpam = Widgets.Toggle("Ult Spam (Every Shot = Ult)", RailgunnerUltSpam);
-            Widgets.Hint("Converts EVERY sniper shot into a Supercharge Ultimate bullet for non-stop ult spam.");
+            RailgunnerInstaCharge = Widgets.Toggle("Instant Ult Charge", RailgunnerInstaCharge,
+                "Special skill charges instantly (0s charge time).");
+            RailgunnerNoUltCooldown = Widgets.Toggle("No Ult Cooldown (Special Only)", RailgunnerNoUltCooldown,
+                "Resets Special skill stock and clears the 5s overheat lockout without touching other skills.");
+            RailgunnerUltSpam = Widgets.Toggle("Ult Spam (Every Shot = Ult)", RailgunnerUltSpam,
+                "Converts every sniper shot into a Supercharge Ultimate bullet for non-stop ult spam.");
             Widgets.SectionEnd();
         }
     }

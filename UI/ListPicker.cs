@@ -4,6 +4,8 @@ using UnityEngine;
 
 namespace PoppyMenu
 {
+    // Searchable list window for items, buffs, spawn cards and features.
+    // Position in screen pixels, size in logical units (multiplied by Theme.Scale).
     internal static class ListPicker
     {
         internal struct Row
@@ -15,12 +17,16 @@ namespace PoppyMenu
         }
 
         private const int WindowId = 0x5B7A01;
-        private static bool _open;
+        private const string SearchControl = "poppy_picker_search";
+        private static bool _open, _focusSearch;
         private static string _title = "";
         private static string _search = "";
         private static Vector2 _scroll;
         private static List<Row> _rows = new List<Row>();
-        private static Rect _rect = new Rect(640, 90, 360, 580);
+        private static Vector2 _pos = new Vector2(700, 90);
+        private static Vector2 _size = new Vector2(380, 560);
+        private static Rect _screenRect;
+        private static bool _resizing;
 
         internal static bool IsOpen => _open;
 
@@ -31,115 +37,127 @@ namespace PoppyMenu
             _search = "";
             _scroll = Vector2.zero;
             _open   = true;
+            _focusSearch = true;
         }
 
         internal static void Close() => _open = false;
 
-        internal static bool ContainsPoint(Vector2 screenPoint)
-        {
-            if (!_open) return false;
-            float scale = Mathf.Max(0.1f, ModConfig.UiScale.Value);
-            Rect s = new Rect(_rect.x * scale, _rect.y * scale, _rect.width * scale, _rect.height * scale);
-            return s.Contains(screenPoint);
-        }
+        internal static bool ContainsPoint(Vector2 screenPoint) => _open && _screenRect.Contains(screenPoint);
 
         internal static void Draw()
         {
             if (!_open) return;
-            _rect = GUI.Window(WindowId, _rect, DrawWindow, "", Theme.Window);
+            float w = Theme.S(_size.x), h = Theme.S(_size.y);
+            _pos.x = Mathf.Clamp(_pos.x, 80f - w, Screen.width - 80f);
+            _pos.y = Mathf.Clamp(_pos.y, 0f, Screen.height - 40f);
+            _screenRect = new Rect(_pos.x, _pos.y, w, h);
+            _pos = GUI.Window(WindowId, _screenRect, DrawWindow, "", GUIStyle.none).position;
         }
 
         private static void DrawWindow(int id)
         {
-            // Resize click detection
-            if (Event.current.type == EventType.MouseDown
-                && new Rect(_rect.width - 26f, _rect.height - 26f, 26f, 26f).Contains(Event.current.mousePosition))
+            float W = _screenRect.width, H = _screenRect.height;
+            Theme.Box(new Rect(0, 0, W, H), Theme.WindowBg);
+
+            Rect grip = Widgets.GripRect(W, H);
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && grip.Contains(Event.current.mousePosition))
             {
                 _resizing = true;
                 Event.current.Use();
             }
 
-            // ── Header ──
-            GUILayout.BeginHorizontal(GUILayout.Height(28));
-            GUILayout.Label("<color=#" + Theme.Hex(Theme.Accent2) + ">\u25C6</color>  " + _title.ToUpperInvariant(),
-                Theme.SubHeader);
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("\u2715", Theme.IconBtn, GUILayout.Width(26), GUILayout.Height(22))) Close();
-            GUILayout.EndHorizontal();
+            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+            {
+                Close();
+                Event.current.Use();
+                return;
+            }
 
-            // Separator
-            Rect sep = GUILayoutUtility.GetRect(1, 1, GUILayout.ExpandWidth(true));
-            Theme.Fill(new Rect(sep.x, sep.y, sep.width, 1), new Color(1, 1, 1, 0.06f));
-            GUILayout.Space(4);
+            float pad = Theme.S(16), th = Theme.S(50);
+            Vector2 m = Event.current.mousePosition;
+
+            // ── Header ──
+            GUI.Label(new Rect(pad, 0, W - pad * 2f - Theme.S(36), th), _title, Theme.LabelBold);
+            Rect close = new Rect(W - Theme.S(12) - Theme.S(28), (th - Theme.S(28)) * 0.5f, Theme.S(28), Theme.S(28));
+            if (close.Contains(m)) Theme.Rounded(close, 8f, Theme.Ctrl);
+            Icons.DrawCentered(close, Icons.X, 14, close.Contains(m) ? Theme.Text : Theme.Sub);
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && close.Contains(m))
+            {
+                Close();
+                Event.current.Use();
+                return;
+            }
 
             // ── Search ──
-            GUILayout.BeginHorizontal();
-            GUI.SetNextControlName("poppy_picker_search");
-            _search = GUILayout.TextField(_search ?? "", Theme.Search, GUILayout.Height(26));
-            if (GUILayout.Button("clear", Theme.Button, GUILayout.Width(50), GUILayout.Height(26)))
-                _search = "";
-            GUILayout.EndHorizontal();
-            GUILayout.Space(4);
+            Rect search = new Rect(pad, th, W - pad * 2f, Theme.S(32));
+            GUI.SetNextControlName(SearchControl);
+            string next = GUI.TextField(search, _search ?? "", 64, Theme.Search);
+            if (next != _search) { _search = next; _scroll = Vector2.zero; }
+            if (_focusSearch && Event.current.type == EventType.Repaint) { GUI.FocusControl(SearchControl); _focusSearch = false; }
+            Icons.Draw(new Rect(search.x + Theme.S(10), search.y + (search.height - Theme.S(14)) * 0.5f, Theme.S(14), Theme.S(14)), Icons.Search, Theme.Faint);
+            if (string.IsNullOrEmpty(_search) && GUI.GetNameOfFocusedControl() != SearchControl)
+                GUI.Label(new Rect(search.x + Theme.S(30), search.y, search.width - Theme.S(36), search.height), "Search", Theme.Placeholder);
 
             string filter = (_search ?? "").Trim();
             bool hasFilter = filter.Length > 0;
 
             // ── List ──
-            _scroll = GUILayout.BeginScrollView(_scroll);
+            float listTop = search.yMax + Theme.S(10);
+            float footH = Theme.S(30);
+            Rect listRect = new Rect(Theme.S(8), listTop, W - Theme.S(8) - Theme.S(6), H - listTop - footH);
+            float rowH = Theme.S(32);
+
             int matched = 0;
+            for (int i = 0; i < _rows.Count; i++)
+                if (!hasFilter || _rows[i].Label.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0) matched++;
+
+            Rect view = new Rect(0, 0, listRect.width - Theme.S(12), matched * rowH);
+            _scroll = GUI.BeginScrollView(listRect, _scroll, view, false, false, GUIStyle.none, GUI.skin.verticalScrollbar);
+            int first = Mathf.Max(0, Mathf.FloorToInt(_scroll.y / rowH) - 1);
+            int last = Mathf.CeilToInt((_scroll.y + listRect.height) / rowH) + 1;
+            int n = 0;
             for (int i = 0; i < _rows.Count; i++)
             {
                 Row row = _rows[i];
-                if (hasFilter && row.Label.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
-                    continue;
-                matched++;
+                if (hasFilter && row.Label.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                int idx = n++;
+                if (idx < first || idx > last) continue;
 
-                bool clicked = GUILayout.Button(row.Label, Theme.RowButton, GUILayout.Height(26));
-                Rect r = GUILayoutUtility.GetLastRect();
-
-                // Colored dot indicator
-                float dotSize = 8f;
-                float dotX = r.x + 10f;
-                float dotY = r.y + (r.height - dotSize) * 0.5f;
-                Theme.Fill(new Rect(dotX, dotY, dotSize, dotSize), row.Color);
-
-                if (clicked) row.OnClick?.Invoke();
+                Rect r = new Rect(0, idx * rowH, view.width, rowH);
+                bool hover = r.Contains(Event.current.mousePosition);
+                if (hover) Theme.Rounded(r, 7f, Theme.RowHover);
+                float dot = Theme.S(8);
+                Theme.Rounded(new Rect(r.x + Theme.S(10), r.y + (rowH - dot) * 0.5f, dot, dot), 4f, row.Color);
+                if (Event.current.type == EventType.Repaint)
+                    GUI.Label(new Rect(r.x + Theme.S(28), r.y, r.width - Theme.S(36), rowH), row.Label, Theme.Label);
+                if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && hover)
+                {
+                    Event.current.Use();
+                    row.OnClick?.Invoke();
+                }
             }
-            if (matched == 0) GUILayout.Label("No matches.", Theme.Hint);
-            GUILayout.EndScrollView();
+            GUI.EndScrollView();
 
             // ── Footer ──
-            GUILayout.Space(2);
-            GUILayout.Label($"{matched} of {_rows.Count}  \u00B7  Esc to close", Theme.Hint);
-
-            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+            if (Event.current.type == EventType.Repaint)
             {
-                Close();
-                Event.current.Use();
+                Theme.Fill(new Rect(0, H - footH, W, Mathf.Max(1f, Theme.S(1))), Theme.Line);
+                string foot = matched == 0 ? "No matches" : matched + " of " + _rows.Count;
+                GUI.Label(new Rect(pad, H - footH, W - pad * 2f, footH), foot + "   ·   Esc to close", Theme.Small);
             }
 
-            HandleResize();
-            GUI.DragWindow(new Rect(0, 0, _rect.width, 28));
+            HandleResize(grip);
+            GUI.DragWindow(new Rect(0, 0, W - Theme.S(48), th));
         }
 
-        private static bool _resizing;
-
-        private static void HandleResize()
+        private static void HandleResize(Rect grip)
         {
-            // Draw grip
-            float gx = _rect.width - 16f, gy = _rect.height - 16f;
-            Color grip = new Color(1, 1, 1, 0.15f);
-            Theme.Fill(new Rect(gx + 8f, gy + 12f, 6f, 1.5f), grip);
-            Theme.Fill(new Rect(gx + 12f, gy + 8f, 1.5f, 6f), grip);
-
+            Widgets.ResizeGrip(grip, _resizing);
             if (!_resizing) return;
 
-            float scale = Mathf.Max(0.1f, ModConfig.UiScale.Value);
-            float mouseX = Input.mousePosition.x / scale;
-            float mouseY = (Screen.height - Input.mousePosition.y) / scale;
-            _rect.width  = Mathf.Clamp(mouseX - _rect.x + 3f, 280f, 800f);
-            _rect.height = Mathf.Clamp(mouseY - _rect.y + 3f, 260f, 900f);
-
+            Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            _size.x = Mathf.Clamp((mouse.x - _pos.x + 3f) / Theme.Scale, 300f, 800f);
+            _size.y = Mathf.Clamp((mouse.y - _pos.y + 3f) / Theme.Scale, 300f, 900f);
             if (!Input.GetMouseButton(0)) _resizing = false;
         }
     }

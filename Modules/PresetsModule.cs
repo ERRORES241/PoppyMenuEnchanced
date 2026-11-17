@@ -131,12 +131,16 @@ namespace PoppyMenu
 
         internal override void DrawMenu()
         {
-            Widgets.SectionBegin("Configuration Manager");
-            Widgets.Hint("Save, load, rename, or delete your custom feature & ESP profiles.");
+            // Profiles are read from disk; keep the menu search from doing that every frame.
+            if (Widgets.Searching) return;
 
-            GUILayout.BeginHorizontal();
-            _newConfigName = GUILayout.TextField(_newConfigName ?? "", Theme.Search);
-            if (GUILayout.Button("+ Save Current", Theme.Primary, GUILayout.Width(130)))
+            Widgets.SectionBegin("Configuration Manager");
+            Widgets.Note("Save, load, rename, or delete your custom feature & ESP profiles.");
+            if (Widgets.BeginRow())
+            {
+            _newConfigName = Widgets.TextField(_newConfigName, "New config name");
+            Widgets.RowSpace();
+            if (Widgets.SmallButton("Save current", Widgets.Kind.Primary, 110))
             {
                 string name = string.IsNullOrWhiteSpace(_newConfigName) ? "Config_" + DateTime.Now.ToString("HHmmss") : _newConfigName.Trim();
                 ConfigProfile p = ConfigProfile.CaptureCurrent(name);
@@ -144,14 +148,15 @@ namespace PoppyMenu
                 _newConfigName = "";
                 Notify.Push("Saved config: " + p.Name);
             }
-            GUILayout.EndHorizontal();
+            Widgets.EndRow();
+            }
             Widgets.SectionEnd();
 
             List<ConfigProfile> profiles = GetSavedProfiles();
             if (profiles.Count == 0)
             {
                 Widgets.SectionBegin("Saved Configs");
-                Widgets.Label("No saved configs yet. Enter a name above and click '+ Save Current'.");
+                Widgets.Note("No saved configs yet. Enter a name above and click Save current.");
                 Widgets.SectionEnd();
                 return;
             }
@@ -161,40 +166,39 @@ namespace PoppyMenu
                 ConfigProfile profile = p;
                 Widgets.SectionBegin(null);
 
-                GUILayout.BeginHorizontal();
                 string key = profile.Name ?? "";
-                if (!_renameText.TryGetValue(key, out string text)) text = key;
-                text = GUILayout.TextField(text, Theme.Search);
-                _renameText[key] = text;
-                if (text != key && !string.IsNullOrWhiteSpace(text)
-                    && GUILayout.Button("Rename", Theme.Button, GUILayout.Width(70)))
+                if (Widgets.BeginRow())
                 {
-                    if (RenameProfile(profile, text))
+                    if (!_renameText.TryGetValue(key, out string text)) text = key;
+                    text = Widgets.TextField(text, "Config name");
+                    _renameText[key] = text;
+                    Widgets.RowSpace();
+                    if (text != key && !string.IsNullOrWhiteSpace(text))
                     {
-                        _renameText.Remove(key);
-                        Notify.Push("Renamed to " + profile.Name);
+                        if (Widgets.SmallButton("Rename", Widgets.Kind.Normal, 80) && RenameProfile(profile, text))
+                        {
+                            _renameText.Remove(key);
+                            Notify.Push("Renamed to " + profile.Name);
+                        }
+                        Widgets.RowSpace();
                     }
+                    if (Widgets.SmallButton("Load", Widgets.Kind.Primary, 70))
+                    {
+                        profile.Apply();
+                        Notify.Push("Loaded config: " + profile.Name);
+                    }
+                    Widgets.RowSpace();
+                    if (Widgets.SmallButton("Overwrite", Widgets.Kind.Normal, 90))
+                    {
+                        ConfigProfile updated = ConfigProfile.CaptureCurrent(profile.Name);
+                        updated.IsDefaultStartup = profile.IsDefaultStartup;
+                        SaveProfile(updated);
+                        Notify.Push("Overwrote config: " + profile.Name);
+                    }
+                    Widgets.RowSpace();
+                    if (Widgets.SmallButton("Delete", Widgets.Kind.Danger, 74)) _pendingDelete = profile.Name;
+                    Widgets.EndRow();
                 }
-
-                if (GUILayout.Button("Load", Theme.Primary, GUILayout.Width(64)))
-                {
-                    profile.Apply();
-                    Notify.Push("Loaded config: " + profile.Name);
-                }
-
-                if (GUILayout.Button("Overwrite", Theme.Button, GUILayout.Width(80)))
-                {
-                    ConfigProfile updated = ConfigProfile.CaptureCurrent(profile.Name);
-                    updated.IsDefaultStartup = profile.IsDefaultStartup;
-                    SaveProfile(updated);
-                    Notify.Push("Overwrote config: " + profile.Name);
-                }
-
-                if (GUILayout.Button("Delete", Theme.Danger_, GUILayout.Width(64)))
-                {
-                    _pendingDelete = profile.Name;
-                }
-                GUILayout.EndHorizontal();
 
                 bool isDefault = profile.IsDefaultStartup;
                 bool newDefault = Widgets.Toggle("Load on startup (Default profile)", isDefault);
