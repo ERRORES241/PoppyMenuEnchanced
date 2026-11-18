@@ -8,6 +8,15 @@
 - Mid-game loadout, End-game loadout, Zoom items and Spawn all portals now have rows (Settings > Macros and World > Stage), so they can be run and bound from the menu.
 - Railgunner weak points is now Aim at weak points under Combat > Weapons > Railgunner. Give all items shows its count in the description instead of the name.
 - Icons fade along with dropdowns, toasts and dimmed rows.
+- Remove item under Items > Give: lists what you carry with counts and takes away the Count you set from the item you pick. The list updates as items go.
+- The item lists filter by rarity: All, White, Green, Red, Boss, Lunar, Void, Other.
+- Equipment from Gorakh's Quality mod is grouped like items: one row per equipment that opens its quality tiers. The macro step picker uses the same list.
+- Ctrl+click a slider or a number box to type a value. Enter or a click elsewhere applies it, Esc cancels. Sliders take values above their maximum; number boxes stay within their range.
+- Pause while menu is open (Settings > General > Game), solo only.
+- No fall damage (Player > Character), host only.
+- Regen multiplier under Player > Stats, and a new Earnings section there with money and experience multipliers. All three are host only; money and experience apply to the whole team, and the menu's own Give buttons are not multiplied.
+- Bonus crit chance tops out at 100%: crit chance above 100% does nothing in the game. Saved values above 100 are cut to 100.
+- Free Shrine of Blood (World > Stage > Shrines), host only: the shrine pays its usual gold without taking health.
 
 ## 2.7.0
 - Updated for the October 2026 game update and DLC4 (GameLibs 1.5.0-r.1, MMHOOK 2026.10.8).

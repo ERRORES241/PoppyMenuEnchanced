@@ -20,7 +20,7 @@ namespace PoppyMenu
             Widgets.ButtonGrid(
                 ("Item", () => ItemPicker.Open("Pick an item", idx => Done(onAdd, Steps.Item((int)idx, _amount)))),
                 ("Buff", () => ListPicker.Open("Pick a buff", BuffRows(onAdd))),
-                ("Equipment", () => ListPicker.Open("Pick equipment", EquipRows(onAdd))));
+                ("Equipment", () => ItemPicker.OpenEquipment("Pick equipment", idx => Done(onAdd, Steps.Equipment((int)idx)))));
             Widgets.ButtonGrid(
                 ("Spawn", () => ListPicker.Open("Pick something to spawn", SpawnRows(onAdd))),
                 ("Feature", () => ListPicker.Open("Pick a feature", FeatureRows(onAdd))),
@@ -41,17 +41,6 @@ namespace PoppyMenu
             {
                 var e = entry;
                 rows.Add(new ListPicker.Row(e.Name, e.IsDebuff ? Color.red : Color.cyan, () => Done(onAdd, Steps.Buff((int)e.Index, _duration))));
-            }
-            return rows;
-        }
-
-        private static List<ListPicker.Row> EquipRows(Action<CustomStep> onAdd)
-        {
-            var rows = new List<ListPicker.Row>(Catalogs.Equipment.Count);
-            foreach (var entry in Catalogs.Equipment)
-            {
-                var e = entry;
-                rows.Add(new ListPicker.Row(e.Name, e.Color, () => Done(onAdd, Steps.Equipment((int)e.Index))));
             }
             return rows;
         }

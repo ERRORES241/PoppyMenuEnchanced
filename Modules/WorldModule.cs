@@ -82,13 +82,18 @@ namespace PoppyMenu
             ApplyTimeScale();
         }
 
+        // Solo only: on a host it would stop the game for everyone, and a client cannot stop it at all.
+        private static bool MenuPause =>
+            ModConfig.PauseWithMenu.Value && MenuRoot.Visible && Run.instance != null && RoR2Application.isInSinglePlayer;
+
         private static void ApplyTimeScale()
         {
-            bool want = FreezeMatch || Mathf.Abs(TimeScale - 1f) > 0.001f;
+            bool stop = FreezeMatch || MenuPause;
+            bool want = stop || Mathf.Abs(TimeScale - 1f) > 0.001f;
             if (want)
             {
                 if (PauseManager.isPaused) return; // do not override the pause menu
-                Time.timeScale = FreezeMatch ? 0f : TimeScale;
+                Time.timeScale = stop ? 0f : TimeScale;
                 _controllingTime = true;
             }
             else if (_controllingTime)
@@ -123,7 +128,7 @@ namespace PoppyMenu
             Widgets.HostOnly();
             FreezeMatch = Widgets.Toggle("Freeze game", FreezeMatch, "Everything stops, you too.");
             FreezeTimer = Widgets.Toggle("Freeze timer", FreezeTimer, "The run clock stops, so difficulty stops rising. Enemies still move.");
-            TimeScale = Widgets.Slider("Game speed", TimeScale, 0.1f, 3f, format: "0.##x");
+            TimeScale = Mathf.Min(Widgets.Slider("Game speed", TimeScale, 0.1f, 3f, format: "0.##x"), 100f); // Unity's limit
             Widgets.Buttons("Quick set", null, ("0.25x", () => TimeScale = 0.25f), ("1x", () => TimeScale = 1f), ("2x", () => TimeScale = 2f));
             Widgets.SectionEnd();
         }
@@ -147,6 +152,9 @@ namespace PoppyMenu
                 "Every purchase drops an item.");
             InfiniteShrineChance = Widgets.Toggle("Unlimited Shrine of Chance uses", InfiniteShrineChance,
                 "The shrine stays open after its usual number of uses.");
+            Widgets.HostOnly();
+            Safety.FreeBloodShrine = Widgets.Toggle("Free Shrine of Blood", Safety.FreeBloodShrine,
+                "Pays out gold without taking health. Same payout as usual.");
             Widgets.SectionEnd();
         }
     }

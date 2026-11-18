@@ -22,11 +22,12 @@ namespace PoppyMenu
         {
             internal readonly EquipmentIndex Index;
             internal readonly string Name;
+            internal readonly string Quality;
             internal readonly Color Color;
             internal readonly bool IsLunar;
             internal readonly bool IsBoss;
-            internal EquipEntry(EquipmentIndex index, string name, Color color, bool isLunar, bool isBoss)
-            { Index = index; Name = name; Color = color; IsLunar = isLunar; IsBoss = isBoss; }
+            internal EquipEntry(EquipmentIndex index, string name, string quality, Color color, bool isLunar, bool isBoss)
+            { Index = index; Name = name; Quality = quality; Color = color; IsLunar = isLunar; IsBoss = isBoss; }
         }
 
         internal readonly struct BuffEntry
@@ -167,11 +168,13 @@ namespace PoppyMenu
                 EquipmentDef def = EquipmentCatalog.GetEquipmentDef(index);
                 if (def == null)
                     continue;
-                string name = Sanitize(Loc(def.nameToken));
+                // Quality mod names its variants like items: the tier sits in a style tag around the base name.
+                string raw = Loc(def.nameToken);
+                string name = Sanitize(raw);
                 if (string.IsNullOrWhiteSpace(name))
                     name = def.name;
                 Color color = ColorCatalog.GetColor(def.colorIndex);
-                Equipment.Add(new EquipEntry(index, name, color, def.isLunar, def.isBoss));
+                Equipment.Add(new EquipEntry(index, name, ExtractQuality(raw), color, def.isLunar, def.isBoss));
             }
             Equipment.Sort((a, b) => string.Compare(a.Name, b.Name, System.StringComparison.OrdinalIgnoreCase));
         }

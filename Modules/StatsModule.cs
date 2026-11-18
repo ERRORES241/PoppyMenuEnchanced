@@ -14,6 +14,12 @@ namespace PoppyMenu
         internal static float DamageMult = 1f, AttackSpeedMult = 1f, MoveSpeedMult = 1f, MaxHealthMult = 1f;
         internal static float ArmorBonus = 0f;
         internal static float CritBonus = 100f;
+        // Host side: money and experience are team-wide in the game, regen is applied by the server.
+        internal static bool MoneyOn, XpOn, RegenOn;
+        internal static float MoneyMult = 1f, XpMult = 1f, RegenMult = 1f;
+
+        // Crit chance is a percentage: anything above 100 changes nothing.
+        internal const float CritMax = 100f;
 
         internal static float ArmorMult { get => ArmorBonus; set => ArmorBonus = value; }
         internal static float CritMult { get => CritBonus; set => CritBonus = value; }
@@ -21,13 +27,14 @@ namespace PoppyMenu
         private static Harmony _harmony;
 
         private static bool AnyOn =>
-            DamageOn || AttackSpeedOn || MoveSpeedOn || ArmorOn || CritOn || MaxHealthOn;
+            DamageOn || AttackSpeedOn || MoveSpeedOn || ArmorOn || CritOn || MaxHealthOn || MoneyOn || XpOn || RegenOn;
 
         internal static bool Active => AnyOn;
 
         internal static void DisableAll()
         {
             DamageOn = AttackSpeedOn = MoveSpeedOn = ArmorOn = CritOn = MaxHealthOn = false;
+            MoneyOn = XpOn = RegenOn = false;
         }
 
         private static void EnsurePatched()
@@ -39,6 +46,31 @@ namespace PoppyMenu
             var pre = AccessTools.Method(typeof(StatsModule), nameof(RecalcPrefix));
             var post = AccessTools.Method(typeof(StatsModule), nameof(RecalcPostfix));
             _harmony.Patch(orig, prefix: new HarmonyMethod(pre), postfix: new HarmonyMethod(post));
+
+            // Kills, barrels and gold orbs pay through the team; the menu's Give buttons do not, so they stay exact.
+            PatchPrefix(AccessTools.Method(typeof(TeamManager), nameof(TeamManager.GiveTeamMoney), new[] { typeof(TeamIndex), typeof(uint), typeof(bool) }), nameof(MoneyPrefix));
+            PatchPrefix(AccessTools.Method(typeof(ExperienceManager), nameof(ExperienceManager.AwardExperience)), nameof(XpPrefix));
+        }
+
+        private static void PatchPrefix(System.Reflection.MethodInfo m, string prefix)
+        {
+            if (m == null) { Log.Warning("Stats: method for " + prefix + " not found, that multiplier will be inert."); return; }
+            try { _harmony.Patch(m, prefix: new HarmonyMethod(typeof(StatsModule), prefix)); }
+            catch (Exception e) { Log.Error("Stats patch " + prefix + ": " + e); }
+        }
+
+        private static void MoneyPrefix(TeamIndex teamIndex, ref uint money)
+        {
+            if (!MoneyOn || teamIndex != TeamIndex.Player) return;
+            money = (uint)Math.Min(money * (double)MoneyMult, uint.MaxValue);
+        }
+
+        // Before the orbs fly, so they show the multiplied amount.
+        private static void XpPrefix(CharacterBody body, ref ulong amount)
+        {
+            if (!XpOn || body == null || body.teamComponent == null || body.teamComponent.teamIndex != TeamIndex.Player) return;
+            double v = amount * (double)XpMult;
+            amount = v >= ulong.MaxValue ? ulong.MaxValue : (ulong)v;
         }
 
         private struct HealthState
@@ -66,7 +98,8 @@ namespace PoppyMenu
             if (AttackSpeedOn) __instance.attackSpeed *= AttackSpeedMult;
             if (MoveSpeedOn) __instance.moveSpeed *= MoveSpeedMult;
             if (ArmorOn) __instance.armor += ArmorBonus;
-            if (CritOn) __instance.crit += CritBonus;
+            if (CritOn) __instance.crit += Mathf.Min(CritBonus, CritMax);
+            if (RegenOn && __instance.regen > 0f) __instance.regen *= RegenMult;
             if (MaxHealthOn) ApplyMaxHealth(__instance, __state);
         }
 
@@ -89,8 +122,8 @@ namespace PoppyMenu
             else if (hc.health > newMax) hc.Networkhealth = Mathf.Max(hc.health + change, newMax);
         }
 
-        private static float _prevDmg, _prevAtk, _prevMove, _prevArmor, _prevCrit, _prevHp;
-        private static bool _prevDmgOn, _prevAtkOn, _prevMoveOn, _prevArmorOn, _prevCritOn, _prevHpOn;
+        private static float _prevDmg, _prevAtk, _prevMove, _prevArmor, _prevCrit, _prevHp, _prevRegen;
+        private static bool _prevDmgOn, _prevAtkOn, _prevMoveOn, _prevArmorOn, _prevCritOn, _prevHpOn, _prevRegenOn;
         private static CharacterBody _prevBody;
 
         internal override void Tick()
@@ -105,7 +138,8 @@ namespace PoppyMenu
                 _prevMoveOn != MoveSpeedOn || _prevMove != MoveSpeedMult ||
                 _prevArmorOn != ArmorOn || _prevArmor != ArmorBonus ||
                 _prevCritOn != CritOn || _prevCrit != CritBonus ||
-                _prevHpOn != MaxHealthOn || _prevHp != MaxHealthMult;
+                _prevHpOn != MaxHealthOn || _prevHp != MaxHealthMult ||
+                _prevRegenOn != RegenOn || _prevRegen != RegenMult;
 
             if (changed)
             {
@@ -116,6 +150,7 @@ namespace PoppyMenu
                 _prevArmorOn = ArmorOn; _prevArmor = ArmorBonus;
                 _prevCritOn = CritOn; _prevCrit = CritBonus;
                 _prevHpOn = MaxHealthOn; _prevHp = MaxHealthMult;
+                _prevRegenOn = RegenOn; _prevRegen = RegenMult;
 
                 body.RecalculateStats();
             }
@@ -139,10 +174,23 @@ namespace PoppyMenu
             if (ArmorOn) ArmorBonus = Widgets.Slider("Armor", ArmorBonus, 0f, 1000f, format: "+0");
 
             CritOn = Widgets.Toggle("Bonus crit chance", CritOn);
-            if (CritOn) CritBonus = Widgets.Slider("Crit chance", CritBonus, 0f, 1000f, format: "+0'%'");
+            if (CritOn) CritBonus = Mathf.Min(Widgets.Slider("Crit chance", CritBonus, 0f, CritMax, format: "+0'%'"), CritMax);
 
             MaxHealthOn = Widgets.Toggle("Max health multiplier", MaxHealthOn);
             if (MaxHealthOn) MaxHealthMult = Widgets.Slider("Max health", MaxHealthMult, 1f, 100f, format: "0.#x");
+
+            Widgets.HostOnly();
+            RegenOn = Widgets.Toggle("Regen multiplier", RegenOn, "Health regeneration.");
+            if (RegenOn) RegenMult = Widgets.Slider("Regen", RegenMult, 1f, 100f, format: "0.#x");
+            Widgets.SectionEnd();
+
+            Widgets.SectionBegin("Earnings");
+            Widgets.HostOnly();
+            MoneyOn = Widgets.Toggle("Money multiplier", MoneyOn, "Gold from kills, barrels and orbs, for the whole team.");
+            if (MoneyOn) MoneyMult = Widgets.Slider("Money", MoneyMult, 1f, 100f, format: "0.#x");
+            Widgets.HostOnly();
+            XpOn = Widgets.Toggle("Experience multiplier", XpOn, "Experience from kills, for the whole team.");
+            if (XpOn) XpMult = Widgets.Slider("Experience", XpMult, 1f, 100f, format: "0.#x");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Current");
@@ -154,6 +202,7 @@ namespace PoppyMenu
                 Widgets.Value("Attack speed", b.attackSpeed.ToString("0.##"));
                 Widgets.Value("Armor", b.armor.ToString("0.##"));
                 Widgets.Value("Crit chance", b.crit.ToString("0.##") + "%");
+                Widgets.Value("Regen", b.regen.ToString("0.##") + "/s");
                 Widgets.Value("Move speed", b.moveSpeed.ToString("0.##"));
             }
             else

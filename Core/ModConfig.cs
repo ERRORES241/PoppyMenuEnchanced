@@ -24,6 +24,7 @@ namespace PoppyMenu
         internal static ConfigEntry<ThemeKind> MenuTheme;
         internal static ConfigEntry<bool> UiAutoScale;
         internal static ConfigEntry<bool> ReduceMotion;
+        internal static ConfigEntry<bool> PauseWithMenu;
 
         internal static ConfigEntry<int> GiveMoneyAmount;
         internal static ConfigEntry<int> GiveXpAmount;
@@ -95,6 +96,8 @@ namespace PoppyMenu
         internal static ConfigEntry<bool> NoEnemies;
         internal static ConfigEntry<bool> LockExp;
         internal static ConfigEntry<bool> PreventProfileWriting;
+        internal static ConfigEntry<bool> NoFallDamage;
+        internal static ConfigEntry<bool> FreeBloodShrine;
         internal static ConfigEntry<bool> RailgunnerInstaCharge;
         internal static ConfigEntry<bool> RailgunnerNoUltCooldown;
         internal static ConfigEntry<bool> RailgunnerUltSpam;
@@ -113,6 +116,8 @@ namespace PoppyMenu
         internal static ConfigEntry<bool> StatHpOn;
         internal static ConfigEntry<bool> GuaranteedShrineChance;
         internal static ConfigEntry<float> StatHpMult;
+        internal static ConfigEntry<bool> StatMoneyOn, StatXpOn, StatRegenOn;
+        internal static ConfigEntry<float> StatMoneyMult, StatXpMult, StatRegenMult;
 
         internal static void Init(ConfigFile cfg)
         {
@@ -124,6 +129,7 @@ namespace PoppyMenu
             RequireServerForCheats = cfg.Bind("General", "RequireServerForCheats", false, "When true, server-side actions are skipped on non-host clients.");
             AllowClientCheats = cfg.Bind("General", "AllowClientCheats", false, "HOST ONLY: allow other clients to use this menu.");
             ReduceMotion = cfg.Bind("General", "ReduceMotion", false, "Menu animations fade only: no sliding or scaling.");
+            PauseWithMenu = cfg.Bind("General", "PauseWithMenu", false, "Pause the game while the menu is open (solo only).");
             ShowHud = cfg.Bind("General", "ShowActiveEffectsHud", true, "Show a small active-effects HUD when the menu is closed.");
             HudX = cfg.Bind("General", "HudX", 14f, "Remembered HUD X position.");
             HudY = cfg.Bind("General", "HudY", 14f, "Remembered HUD Y position.");
@@ -219,11 +225,19 @@ namespace PoppyMenu
             StatCritBonus = cfg.Bind("Stats", "CritBonus", 100f, "Crit chance bonus (+%).");
             StatHpOn = cfg.Bind("Stats", "MaxHealthOn", false, "Max health multiplier toggle.");
             StatHpMult = cfg.Bind("Stats", "MaxHealthMult", 1f, "Max health multiplier.");
+            StatRegenOn = cfg.Bind("Stats", "RegenOn", false, "Regen multiplier toggle (host).");
+            StatRegenMult = cfg.Bind("Stats", "RegenMult", 1f, "Regen multiplier.");
+            StatMoneyOn = cfg.Bind("Stats", "MoneyOn", false, "Money multiplier toggle (host, whole team).");
+            StatMoneyMult = cfg.Bind("Stats", "MoneyMult", 1f, "Money multiplier.");
+            StatXpOn = cfg.Bind("Stats", "ExperienceOn", false, "Experience multiplier toggle (host, whole team).");
+            StatXpMult = cfg.Bind("Stats", "ExperienceMult", 1f, "Experience multiplier.");
             GuaranteedShrineChance = cfg.Bind("World", "GuaranteedShrineChance", false, "100% success rate on Shrine of Chance.");
             InfiniteShrineChance = cfg.Bind("World", "InfiniteShrineChance", false, "Shrine of Chance never closes.");
             NoEnemies = cfg.Bind("World", "NoEnemies", false, "Kill hostile bodies on spawn (host).");
             LockExp = cfg.Bind("World", "LockExp", false, "Block experience gain.");
             PreventProfileWriting = cfg.Bind("World", "PreventProfileWriting", false, "Do not save the game profile.");
+            NoFallDamage = cfg.Bind("Combat", "NoFallDamage", false, "No fall damage (host).");
+            FreeBloodShrine = cfg.Bind("World", "FreeBloodShrine", false, "Shrine of Blood takes no health (host).");
             TeleporterInstaCharge = cfg.Bind("Teleporter", "InstantCharge", false, "Instantly fill charge zones.");
             RailgunnerInstaCharge = cfg.Bind("Fun", "RailgunnerInstaCharge", false, "Railgunner instant charge.");
             RailgunnerNoUltCooldown = cfg.Bind("Fun", "RailgunnerNoUltCooldown", false, "Railgunner no ult cooldown.");
@@ -301,15 +315,23 @@ namespace PoppyMenu
             StatsModule.ArmorOn = StatArmorOn.Value;
             StatsModule.ArmorBonus = StatArmorBonus.Value;
             StatsModule.CritOn = StatCritOn.Value;
-            StatsModule.CritBonus = StatCritBonus.Value;
+            StatsModule.CritBonus = Mathf.Min(StatCritBonus.Value, StatsModule.CritMax);
             StatsModule.MaxHealthOn = StatHpOn.Value;
             StatsModule.MaxHealthMult = StatHpMult.Value;
+            StatsModule.RegenOn = StatRegenOn.Value;
+            StatsModule.RegenMult = StatRegenMult.Value;
+            StatsModule.MoneyOn = StatMoneyOn.Value;
+            StatsModule.MoneyMult = StatMoneyMult.Value;
+            StatsModule.XpOn = StatXpOn.Value;
+            StatsModule.XpMult = StatXpMult.Value;
             WorldModule.GuaranteedShrineChance = GuaranteedShrineChance.Value;
             WorldModule.InfiniteShrineChance = InfiniteShrineChance.Value;
             TeleporterModule.InstaCharge = TeleporterInstaCharge.Value;
             Safety.NoEnemies = NoEnemies.Value;
             Safety.LockExp = LockExp.Value;
             Safety.PreventProfileWriting = PreventProfileWriting.Value;
+            Safety.NoFallDamage = NoFallDamage.Value;
+            Safety.FreeBloodShrine = FreeBloodShrine.Value;
             FunModule.RailgunnerInstaCharge = RailgunnerInstaCharge.Value;
             FunModule.RailgunnerNoUltCooldown = RailgunnerNoUltCooldown.Value;
             FunModule.RailgunnerUltSpam = RailgunnerUltSpam.Value;
@@ -397,12 +419,20 @@ namespace PoppyMenu
             StatCritBonus.Value = StatsModule.CritBonus;
             StatHpOn.Value = StatsModule.MaxHealthOn;
             StatHpMult.Value = StatsModule.MaxHealthMult;
+            StatRegenOn.Value = StatsModule.RegenOn;
+            StatRegenMult.Value = StatsModule.RegenMult;
+            StatMoneyOn.Value = StatsModule.MoneyOn;
+            StatMoneyMult.Value = StatsModule.MoneyMult;
+            StatXpOn.Value = StatsModule.XpOn;
+            StatXpMult.Value = StatsModule.XpMult;
             GuaranteedShrineChance.Value = WorldModule.GuaranteedShrineChance;
             InfiniteShrineChance.Value = WorldModule.InfiniteShrineChance;
             TeleporterInstaCharge.Value = TeleporterModule.InstaCharge;
             NoEnemies.Value = Safety.NoEnemies;
             LockExp.Value = Safety.LockExp;
             PreventProfileWriting.Value = Safety.PreventProfileWriting;
+            NoFallDamage.Value = Safety.NoFallDamage;
+            FreeBloodShrine.Value = Safety.FreeBloodShrine;
             RailgunnerInstaCharge.Value = FunModule.RailgunnerInstaCharge;
             RailgunnerNoUltCooldown.Value = FunModule.RailgunnerNoUltCooldown;
             RailgunnerUltSpam.Value = FunModule.RailgunnerUltSpam;

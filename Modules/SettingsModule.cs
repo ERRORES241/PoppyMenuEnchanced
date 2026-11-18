@@ -40,6 +40,8 @@ namespace PoppyMenu
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Game");
+            ModConfig.PauseWithMenu.Value = Widgets.Toggle("Pause while menu is open", ModConfig.PauseWithMenu.Value,
+                "Solo only. In multiplayer the game keeps running.");
             Safety.PreventProfileWriting = Widgets.Toggle("Don't save profile", Safety.PreventProfileWriting,
                 "Unlocks and stats from this session stay out of your save.");
             Widgets.SectionEnd();

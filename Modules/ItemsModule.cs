@@ -16,12 +16,15 @@ namespace PoppyMenu
         internal static void DrawGive()
         {
             Widgets.SectionBegin("Give", run: true);
-            GiveCount = Widgets.IntStepper("Count", GiveCount, 1, 1, 1000, "How many of each item to give.");
+            GiveCount = Widgets.IntStepper("Count", GiveCount, 1, 1, 1000, "How many of each item to give or remove.");
 
-            Widgets.Button("Give item", () =>
+            Widgets.ListButton("Give item", () =>
                 ItemPicker.Open("Items", idx => NetUtil.Do(PoppyOp.GiveItem, (int)idx, GiveCount)));
-
-            Widgets.PickerButton("Give equipment", "Equipment", EquipRows);
+            Widgets.ListButton("Remove item", () =>
+                ItemPicker.OpenOwned("Your items", idx => NetUtil.Do(PoppyOp.RemoveItem, (int)idx, GiveCount)),
+                "Lists what you carry. Takes away Count of the one you pick.");
+            Widgets.ListButton("Give equipment", () =>
+                ItemPicker.OpenEquipment("Equipment", idx => NetUtil.Do(PoppyOp.GiveEquipment, (int)idx)));
             Widgets.PickerButton("Set key item", "Key items", KeyItemRows);
             Widgets.Button("Give all items", GiveCount == 1 ? "One of each." : GiveCount + " of each.", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: GiveCount));
             Widgets.SectionEnd();
@@ -44,17 +47,6 @@ namespace PoppyMenu
                 SaleStarDropCount = Widgets.IntStepper("Items per chest", SaleStarDropCount, 1, 2, 5);
             }
             Widgets.SectionEnd();
-        }
-
-        private static List<ListPicker.Row> EquipRows()
-        {
-            var rows = new List<ListPicker.Row>(Catalogs.Equipment.Count);
-            foreach (var entry in Catalogs.Equipment)
-            {
-                var e = entry;
-                rows.Add(new ListPicker.Row(e.Name, e.Color, () => NetUtil.Do(PoppyOp.GiveEquipment, (int)e.Index)));
-            }
-            return rows;
         }
 
         private static readonly UnityEngine.Color KeyItemColor = new UnityEngine.Color(0.85f, 0.65f, 1f);

@@ -416,6 +416,12 @@ namespace PoppyMenu
             if (ActionRow(text.TrimEnd('.'), desc, Kind.Normal, true)) ListPicker.Open(title, rows());
         }
 
+        // Row with a chevron that opens a list of its own making (ItemPicker).
+        internal static void ListButton(string text, Action open, string desc = null)
+        {
+            if (ActionRow(text, desc, Kind.Normal, true)) open?.Invoke();
+        }
+
         // Label + description with several buttons on the right.
         internal static void Buttons(string label, string desc, params (string text, Action onClick)[] buttons)
         {
@@ -494,6 +500,15 @@ namespace PoppyMenu
             Rect hit = new Rect(track.x - Theme.S(7), r.y, track.width + Theme.S(14), r.height);
 
             int id = GUIUtility.GetControlID(FocusType.Passive);
+
+            // Ctrl+click types a value. Above the slider's maximum is allowed, below its minimum is not.
+            // "0%" sliders show a fraction as percent, so the typed number is a percent too.
+            bool percent = format.EndsWith("%") && !format.EndsWith("'%'");
+            Rect field = new Rect(c.x, Mathf.Round(r.y + (r.height - Theme.S(28)) * 0.5f), c.width, Theme.S(28));
+            string shown = (percent ? value * 100f : value).ToString("0.##", CultureInfo.InvariantCulture);
+            if (NumberField("num:" + (_rowKey ?? label), field, shown, false, out double? typed)) return value;
+            if (typed.HasValue) return Mathf.Max(min, (float)(percent ? typed.Value / 100.0 : typed.Value));
+
             Event e = Event.current;
             switch (e.GetTypeForControl(id))
             {
@@ -538,8 +553,12 @@ namespace PoppyMenu
          *  Steppers
          * ═══════════════════════════════════════════════════════════════ */
 
-        private static int Stepper(Rect c, int value, int step, int min, int max)
+        private static int Stepper(Rect c, int value, int step, int min, int max, string key)
         {
+            // Ctrl+click types a value, kept within the stepper's range.
+            if (NumberField("num:" + key, c, value.ToString(CultureInfo.InvariantCulture), true, out double? typed)) return value;
+            if (typed.HasValue) return (int)Math.Max(min, Math.Min(max, Math.Round(typed.Value)));
+
             Theme.Rounded(c, 7f, Theme.Ctrl);
             float bw = Theme.S(28);
             Rect minus = new Rect(c.x, c.y, bw, c.height), plus = new Rect(c.xMax - bw, c.y, bw, c.height);
@@ -560,7 +579,7 @@ namespace PoppyMenu
             if (!Show(label, desc)) return value;
             float w = Theme.S(120), h = Theme.S(28);
             Rect r = Row(label, desc, w);
-            return Stepper(Ctrl(r, w, h), value, step, min, max);
+            return Stepper(Ctrl(r, w, h), value, step, min, max, _rowKey ?? label);
         }
 
         // Stepper and its action button in one row: "Money   [- 1,000 +] [Give]".
@@ -571,9 +590,77 @@ namespace PoppyMenu
             float bw = Mathf.Max(Theme.S(56), TextW(Theme.Button, buttonText) + Theme.S(4));
             Rect r = Row(label, desc, sw + gap + bw);
             Rect c = Ctrl(r, sw + gap + bw, h);
-            value = Stepper(new Rect(c.x, c.y, sw, h), value, step, min, max);
+            value = Stepper(new Rect(c.x, c.y, sw, h), value, step, min, max, _rowKey ?? label);
             if (PressButton(new Rect(c.xMax - bw, c.y, bw, h), buttonText, Theme.Button, label + "/" + buttonText)) onClick?.Invoke(value);
             return value;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+         *  Typed numbers: Ctrl+click a slider or a stepper. Enter or a click
+         *  elsewhere applies, Esc cancels.
+         * ═══════════════════════════════════════════════════════════════ */
+
+        private const string EditControl = "poppy_num_edit";
+        private static string _editKey, _editText;
+        private static bool _editFocus;
+        private static int _editFrame, _editSeen;
+
+        internal static void CancelEdit()
+        {
+            if (_editKey == null) return;
+            _editKey = null;
+            GUIUtility.keyboardControl = 0;
+        }
+
+        // Call after the page: a field whose row was not drawn (other page, row hidden) is dropped.
+        internal static void EndEditFrame()
+        {
+            if (_editKey != null && Repaint && _editSeen != Time.frameCount) CancelEdit();
+        }
+
+        // True while the text field stands in for the control. typed: the value, on the event it is applied.
+        private static bool NumberField(string key, Rect field, string text, bool integer, out double? typed)
+        {
+            typed = null;
+            Event e = Event.current;
+            if (_editKey != key)
+            {
+                if (e.type != EventType.MouseDown || e.button != 0 || !(e.control || e.command) || _rowOff || !field.Contains(e.mousePosition))
+                    return false;
+                _editKey = key;
+                _editText = text;
+                _editFocus = true;
+                _editFrame = Time.frameCount;
+                e.Use();
+            }
+            _editSeen = Time.frameCount;
+
+            bool apply = false;
+            if (e.type == EventType.KeyDown && (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)) { apply = true; e.Use(); }
+            else if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape) { e.Use(); CancelEdit(); return false; }
+            // A click anywhere else, this window or not (raw input: another control may have used the event).
+            else if (e.type == EventType.Repaint && Time.frameCount != _editFrame && UnityEngine.Input.GetMouseButtonDown(0) && !field.Contains(e.mousePosition))
+                apply = true;
+            if (apply)
+            {
+                if (TryParseNumber(_editText, integer, out double v)) typed = v;
+                CancelEdit();
+                return false;
+            }
+
+            GUI.SetNextControlName(EditControl);
+            _editText = GUI.TextField(field, _editText ?? "", 24, Theme.Input);
+            if (_editFocus && Repaint) { GUI.FocusControl(EditControl); _editFocus = false; }
+            return true;
+        }
+
+        // Accepts what the control shows: "2.5x", "+40%", "1,000", "2,5".
+        private static bool TryParseNumber(string s, bool integer, out double v)
+        {
+            s = (s ?? "").Trim().Replace(" ", "").Replace("\u00A0", "").TrimStart('+').TrimEnd('x', 'X', '%', 's', 'm', '\u00B0');
+            if (integer || s.Contains(".")) s = s.Replace(",", "");
+            else s = s.Replace(',', '.');
+            return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out v) && !double.IsNaN(v) && !double.IsInfinity(v);
         }
 
         /* ═══════════════════════════════════════════════════════════════

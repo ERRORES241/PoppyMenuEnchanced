@@ -300,6 +300,14 @@ namespace PoppyMenu
         public bool? RailgunnerInstaCharge { get; set; }
         public bool? RailgunnerNoUltCooldown { get; set; }
         public bool? RailgunnerUltSpam { get; set; }
+        public bool? StatRegenOn { get; set; }
+        public float? StatRegenMult { get; set; }
+        public bool? StatMoneyOn { get; set; }
+        public float? StatMoneyMult { get; set; }
+        public bool? StatXpOn { get; set; }
+        public float? StatXpMult { get; set; }
+        public bool? NoFallDamage { get; set; }
+        public bool? FreeBloodShrine { get; set; }
 
         public static ConfigProfile CaptureCurrent(string name)
         {
@@ -378,7 +386,15 @@ namespace PoppyMenu
                 PreventProfileWriting = Safety.PreventProfileWriting,
                 RailgunnerInstaCharge = FunModule.RailgunnerInstaCharge,
                 RailgunnerNoUltCooldown = FunModule.RailgunnerNoUltCooldown,
-                RailgunnerUltSpam = FunModule.RailgunnerUltSpam
+                RailgunnerUltSpam = FunModule.RailgunnerUltSpam,
+                StatRegenOn = StatsModule.RegenOn,
+                StatRegenMult = StatsModule.RegenMult,
+                StatMoneyOn = StatsModule.MoneyOn,
+                StatMoneyMult = StatsModule.MoneyMult,
+                StatXpOn = StatsModule.XpOn,
+                StatXpMult = StatsModule.XpMult,
+                NoFallDamage = Safety.NoFallDamage,
+                FreeBloodShrine = Safety.FreeBloodShrine
             };
         }
 
@@ -430,7 +446,7 @@ namespace PoppyMenu
             StatsModule.ArmorOn = StatArmorOn;
             StatsModule.ArmorBonus = StatArmorBonus;
             StatsModule.CritOn = StatCritOn;
-            StatsModule.CritBonus = StatCritBonus;
+            StatsModule.CritBonus = UnityEngine.Mathf.Min(StatCritBonus, StatsModule.CritMax);
             StatsModule.MaxHealthOn = StatHpOn;
             StatsModule.MaxHealthMult = StatHpMult;
             WorldModule.GuaranteedShrineChance = GuaranteedShrineChance;
@@ -458,6 +474,14 @@ namespace PoppyMenu
             if (RailgunnerInstaCharge.HasValue) FunModule.RailgunnerInstaCharge = RailgunnerInstaCharge.Value;
             if (RailgunnerNoUltCooldown.HasValue) FunModule.RailgunnerNoUltCooldown = RailgunnerNoUltCooldown.Value;
             if (RailgunnerUltSpam.HasValue) FunModule.RailgunnerUltSpam = RailgunnerUltSpam.Value;
+            if (StatRegenOn.HasValue) StatsModule.RegenOn = StatRegenOn.Value;
+            if (StatRegenMult.HasValue) StatsModule.RegenMult = StatRegenMult.Value;
+            if (StatMoneyOn.HasValue) StatsModule.MoneyOn = StatMoneyOn.Value;
+            if (StatMoneyMult.HasValue) StatsModule.MoneyMult = StatMoneyMult.Value;
+            if (StatXpOn.HasValue) StatsModule.XpOn = StatXpOn.Value;
+            if (StatXpMult.HasValue) StatsModule.XpMult = StatXpMult.Value;
+            if (NoFallDamage.HasValue) Safety.NoFallDamage = NoFallDamage.Value;
+            if (FreeBloodShrine.HasValue) Safety.FreeBloodShrine = FreeBloodShrine.Value;
 
             ModConfig.Save();
         }

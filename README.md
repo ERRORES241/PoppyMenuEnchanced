@@ -14,12 +14,12 @@ Right-click a row to add it to Featured or to bind it to a key, mouse side butto
 The tab the menu opens on: the rows you added from other pages, what is on right now, and a button to turn everything off.
 
 ### Player
-- **Character:** god mode, semi-god mode (never below 1 HP), no skill cooldowns, no equipment cooldown. Heal, hurt, respawn. Buffs with a duration, damage over time effects, remove all buffs.
+- **Character:** god mode, semi-god mode (never below 1 HP), no fall damage, no skill cooldowns, no equipment cooldown. Heal, hurt, respawn. Buffs with a duration, damage over time effects, remove all buffs.
 - **Movement:** flight and no-clip (flight that also passes through walls and floors). Always sprint, which doesn't cut off attacks and doesn't run while you stand still. Bunny hop: hold Jump to jump again the moment you land; Wax Quail and H3AD-5T v2 still work. Jump pack: Space throws you upward, mid-air too. Teleport on every ping, or once to your current ping or to the spot under the crosshair.
-- **Stats:** multipliers for damage, attack speed, move speed and max health, bonus armor and crit chance, and a live readout of your current stats.
+- **Stats:** multipliers for damage, attack speed, move speed, max health and regen, bonus armor and crit chance (up to 100%), and a live readout of your current stats. Money and experience multipliers for the whole team.
 
 ### Items
-- **Give:** item and equipment picker with tier colors, DLC4 key items, give all items. Money, experience and lunar coins with an amount you set. No experience gain.
+- **Give:** item and equipment picker with tier colors and a rarity filter; quality tiers from Gorakh's Quality mod open as a sublist. Remove a set number of any item you carry. DLC4 key items, give all items. Money, experience and lunar coins with an amount you set. No experience gain.
 - **Inventory:** stack (like a Shrine of Order), reroll within each tier, clear, and undo for the last of these. A fixed number of drops for chests opened with Sale Star.
 
 ### Combat
@@ -36,7 +36,7 @@ The tab the menu opens on: the rows you added from other pages, what is on right
 - Custom camera FOV.
 
 ### World
-- **Stage:** teleporter instant charge (also Void Fields cells, Void Locus signals and moon pillars), add a Mountain Shrine, spawn all portals, skip stage, go to any scene. Shrine of Chance that always pays and never closes.
+- **Stage:** teleporter instant charge (also Void Fields cells, Void Locus signals and moon pillars), add a Mountain Shrine, spawn all portals, skip stage, go to any scene. Shrine of Chance that always pays and never closes, Shrine of Blood that takes no health.
 - **Enemies:** spawn monsters and interactables where you aim, with a count and an option to put them on your team. No enemies, kill all enemies.
 - **Run:** freeze the game, freeze the run timer, game speed. Stages cleared, run time, team level, artifacts.
 
@@ -44,13 +44,14 @@ The tab the menu opens on: the rows you added from other pages, what is on right
 Who may use the menu in your game, and for each player in the lobby: heal, hurt, kill, teleport to them or bring them to you, change team, give items. The host can kick and ban.
 
 ### Settings
-- **General:** menu key, theme, resolution scaling and a size multiplier, reduce motion, the active list, don't save profile, reload lists, reset window position.
+- **General:** menu key, theme, resolution scaling and a size multiplier, reduce motion, the active list, pause while the menu is open (solo), don't save profile, reload lists, reset window position.
 - **Macros:** a list of steps (items, buffs, money, spawns, features, other macros) run in one go, from the menu or a key. Three built-in loadouts: mid-game, end-game and movement items.
 - **Configs:** save which features are on along with aimbot, ESP and movement settings. Load, overwrite, rename, and pick one to load at startup.
 
 ## Controls
 - The menu opens with `Insert`. The key can be changed in Settings.
 - Right-click a row for Featured and keybinds.
+- Ctrl+click a slider or a number box to type a value.
 - Drag the top bar to move the window and the dots in the bottom-right corner to resize it.
 - Type in the search box to find a setting. Esc clears it.
 

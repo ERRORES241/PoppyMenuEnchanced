@@ -11,6 +11,8 @@ namespace PoppyMenu
         internal static bool Buddha;
         internal static bool LockExp;
         internal static bool PreventProfileWriting;
+        internal static bool NoFallDamage;
+        internal static bool FreeBloodShrine;
 
         private static Harmony _h;
 
@@ -18,6 +20,7 @@ namespace PoppyMenu
         {
             _h = new Harmony("poppy.safety");
             Patch(typeof(HealthComponent), "TakeDamage", nameof(BuddhaPrefix));
+            Patch(typeof(HealthComponent), "TakeDamage", nameof(SkipDamagePrefix));
             Patch(typeof(ExperienceManager), "AwardExperience", nameof(LockExpPrefix));
             Patch(typeof(UserProfile), "RequestEventualSave", nameof(PreventSavePrefix));
             CharacterBody.onBodyStartGlobal += OnBodyStart;
@@ -58,6 +61,21 @@ namespace PoppyMenu
             // Armor and damage multipliers apply after this prefix, and void implosions (DLC1) kill outright.
             damageInfo.damageType.damageType |= DamageType.NonLethal;
             damageInfo.damageType.damageType &= ~DamageType.VoidDeath;
+        }
+
+        // Both run on the server. Fall damage carries DamageType.FallDamage (GlobalEventManager.OnCharacterHitGroundServer);
+        // a Shrine of Blood takes its health cost as NonLethal damage from the shrine itself (CostTypeCatalog, PercentHealth).
+        // Its gold is computed from full health, so the payout stays the same.
+        private static bool SkipDamagePrefix(HealthComponent __instance, DamageInfo damageInfo)
+        {
+            if ((!NoFallDamage && !FreeBloodShrine) || __instance == null || damageInfo == null) return true;
+            DamageType type = damageInfo.damageType.damageType;
+            if (NoFallDamage && (type & DamageType.FallDamage) != 0 && __instance.body != null && IsLocalPlayer(__instance.body))
+                return false;
+            if (FreeBloodShrine && (type & DamageType.NonLethal) != 0 && damageInfo.attacker != null &&
+                damageInfo.attacker.GetComponent<ShrineBloodBehavior>() != null)
+                return false;
+            return true;
         }
 
         private static bool LockExpPrefix() => !LockExp;

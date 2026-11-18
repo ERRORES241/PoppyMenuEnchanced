@@ -56,7 +56,7 @@ namespace PoppyMenu
                 Rect moved = GUI.Window(WindowId, _screenRect, DrawWindow, "", GUIStyle.none);
                 _pos = moved.position;
             }
-            else RowMenu.Close();
+            else { RowMenu.Close(); Widgets.CancelEdit(); }
 
             if (ModConfig.ShowHud.Value && PlayerContext.InGame)
                 DrawHud();
@@ -140,6 +140,7 @@ namespace PoppyMenu
             DrawFooter(x0, W, H);
             Widgets.DropdownDraw(_screenRect.position, H);
             RowMenu.Draw(_screenRect.position, W, H);
+            Widgets.EndEditFrame();
             HandleResize(grip);
 
             GUI.DragWindow(new Rect(x0, 0, W - x0, Theme.S(TopH)));
@@ -541,6 +542,8 @@ namespace PoppyMenu
 
             if (PlayerModule.GodMode)         _cachedActiveList.Add("God mode");
             if (Safety.Buddha)                _cachedActiveList.Add("Semi-god mode");
+            if (Safety.NoFallDamage)          _cachedActiveList.Add("No fall damage");
+            if (Safety.FreeBloodShrine)       _cachedActiveList.Add("Free Shrine of Blood");
             if (PlayerModule.InfiniteSkills)  _cachedActiveList.Add("No skill cooldowns");
             if (Aim.Enabled)                   _cachedActiveList.Add("Aimbot");
             if (Aim.MagicBullet)               _cachedActiveList.Add("Magic Bullet");

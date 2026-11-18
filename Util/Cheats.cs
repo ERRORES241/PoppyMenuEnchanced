@@ -9,6 +9,7 @@ namespace PoppyMenu
         {
             PlayerModule.GodMode = PlayerModule.InfiniteSkills = false;
             Safety.Buddha = Safety.NoEnemies = Safety.LockExp = false;
+            Safety.NoFallDamage = Safety.FreeBloodShrine = false;
             Aim.Enabled = false; Aim.MagicBullet = false; Aim.NoSpread = false; Aim.NoRecoil = false; Aim.Target = null;
             MovementModule.Flight = MovementModule.NoClip = MovementModule.AlwaysSprint = MovementModule.JumpPack = false;
             MovementModule.Bhop = MovementModule.TeleportToPing = false;

@@ -225,7 +225,12 @@ namespace PoppyMenu
                         inv?.GiveItem((ItemIndex)i1, Mathf.Max(1, i2));
                         break;
                     case PoppyOp.RemoveItem:
-                        inv?.RemoveItem((ItemIndex)i1, Mathf.Max(1, i2));
+                        // The game does not clamp: removing more than you have would leave a negative stack.
+                        if (inv != null)
+                        {
+                            int n = Mathf.Min(Mathf.Max(1, i2), inv.GetItemCountPermanent((ItemIndex)i1));
+                            if (n > 0) inv.RemoveItem((ItemIndex)i1, n);
+                        }
                         break;
                     case PoppyOp.GiveEquipment:
                         inv?.SetEquipmentIndex((EquipmentIndex)i1);

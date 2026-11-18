@@ -56,6 +56,7 @@ namespace PoppyMenu
             Add("player.god", "Player", "God mode", () => PlayerModule.GodMode = !PlayerModule.GodMode);
             Add("player.buddha", "Player", "Semi-god mode", () => Safety.Buddha = !Safety.Buddha);
             Add("player.skills", "Player", "No skill cooldowns", () => PlayerModule.InfiniteSkills = !PlayerModule.InfiniteSkills);
+            Add("player.noFall", "Player", "No fall damage", () => Safety.NoFallDamage = !Safety.NoFallDamage);
             Add("player.healFull", "Player", "Heal to full", () => NetUtil.Do(PoppyOp.HealFull));
             Add("player.respawn", "Player", "Respawn", () => NetUtil.Do(PoppyOp.Respawn));
 
@@ -92,6 +93,7 @@ namespace PoppyMenu
 
             Add("world.freeze", "World", "Freeze game", () => WorldModule.FreezeMatch = !WorldModule.FreezeMatch);
             Add("world.freezeTimer", "World", "Freeze timer", () => WorldModule.FreezeTimer = !WorldModule.FreezeTimer);
+            Add("world.bloodShrine", "World", "Free Shrine of Blood", () => Safety.FreeBloodShrine = !Safety.FreeBloodShrine);
 
             Add("esp.enemies", "ESP", "Enemies", () => RenderModule.EspMobs = !RenderModule.EspMobs);
             Add("esp.interactables", "ESP", "Interactables", () => RenderModule.EspInteractables = !RenderModule.EspInteractables);

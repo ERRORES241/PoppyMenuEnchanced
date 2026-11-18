@@ -13,7 +13,8 @@ namespace PoppyMenu
             internal string Label;
             internal Color Color;
             internal Action OnClick;
-            internal Row(string label, Color color, Action onClick) { Label = label; Color = color; OnClick = onClick; }
+            internal int Tag; // filter chip the row belongs to (1-based); 0 shows only under "All"
+            internal Row(string label, Color color, Action onClick, int tag = 0) { Label = label; Color = color; OnClick = onClick; Tag = tag; }
         }
 
         private const int WindowId = 0x5B7A01;
@@ -29,15 +30,37 @@ namespace PoppyMenu
         private static bool _resizing;
         private static float _openedAt;
 
+        // Filter chips under the search ("All" first). The choice survives switching lists inside an open picker.
+        private static string[] _filters;
+        private static int _filter;
+
+        // Live lists (inventory) are rebuilt a few times a second, so removed items drop out.
+        private static Func<List<Row>> _source;
+        private static float _nextRefresh;
+
         internal static bool IsOpen => _open;
 
-        internal static void Open(string title, List<Row> rows)
+        internal static void Open(string title, List<Row> rows, string[] filters = null)
+        {
+            _source = null;
+            Show(title, rows, filters);
+        }
+
+        internal static void OpenLive(string title, Func<List<Row>> source, string[] filters = null)
+        {
+            _source = source;
+            _nextRefresh = Anim.Now + 0.3f;
+            Show(title, source(), filters);
+        }
+
+        private static void Show(string title, List<Row> rows, string[] filters)
         {
             _title  = title;
             _rows   = rows ?? new List<Row>();
             _search = "";
             _scroll = Vector2.zero;
-            if (!_open) _openedAt = Anim.Now; // switching lists inside an open picker doesn't replay it
+            if (!_open) { _openedAt = Anim.Now; _filter = 0; } // switching lists inside an open picker doesn't replay it
+            _filters = filters;
             _open   = true;
             _focusSearch = true;
         }
@@ -116,15 +139,25 @@ namespace PoppyMenu
             string filter = (_search ?? "").Trim();
             bool hasFilter = filter.Length > 0;
 
-            // ── List ──
+            if (_source != null && Event.current.type == EventType.Layout && Anim.Now >= _nextRefresh)
+            {
+                _rows = _source() ?? new List<Row>();
+                _nextRefresh = Anim.Now + 0.3f;
+            }
+
+            // ── Filter chips ──
             float listTop = search.yMax + Theme.S(10);
+            int chip = _filters != null ? _filter : 0;
+            if (_filters != null) listTop = DrawChips(pad, listTop, W - pad * 2f) + Theme.S(8);
+
+            // ── List ──
             float footH = Theme.S(30);
             Rect listRect = new Rect(Theme.S(8), listTop, W - Theme.S(8) - Theme.S(6), H - listTop - footH);
             float rowH = Theme.S(32);
 
             int matched = 0;
             for (int i = 0; i < _rows.Count; i++)
-                if (!hasFilter || _rows[i].Label.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0) matched++;
+                if (Passes(_rows[i], chip, hasFilter, filter)) matched++;
 
             Rect view = new Rect(0, 0, listRect.width - Theme.S(12), matched * rowH);
             _scroll = GUI.BeginScrollView(listRect, _scroll, view, false, false, GUIStyle.none, GUI.skin.verticalScrollbar);
@@ -134,7 +167,7 @@ namespace PoppyMenu
             for (int i = 0; i < _rows.Count; i++)
             {
                 Row row = _rows[i];
-                if (hasFilter && row.Label.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (!Passes(row, chip, hasFilter, filter)) continue;
                 int idx = n++;
                 if (idx < first || idx > last) continue;
 
@@ -163,6 +196,41 @@ namespace PoppyMenu
 
             HandleResize(grip);
             GUI.DragWindow(new Rect(0, 0, W - Theme.S(48), th));
+        }
+
+        private static bool Passes(Row row, int chip, bool hasFilter, string filter) =>
+            (chip == 0 || row.Tag == chip) &&
+            (!hasFilter || row.Label.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0);
+
+        // Wrapping row of chips; returns the bottom edge.
+        private static float DrawChips(float x0, float y, float width)
+        {
+            float h = Theme.S(24), gap = Theme.S(6), x = x0;
+            Vector2 m = Event.current.mousePosition;
+            for (int i = 0; i < _filters.Length; i++)
+            {
+                float w = Theme.Seg.CalcSize(new GUIContent(_filters[i])).x + Theme.S(18);
+                if (x > x0 && x + w > x0 + width) { x = x0; y += h + gap; }
+                Rect r = new Rect(x, y, w, h);
+                bool on = i == _filter;
+                if (Event.current.type == EventType.Repaint)
+                {
+                    if (on) Theme.SegOn.Draw(r, new GUIContent(_filters[i]), false, false, false, false);
+                    else
+                    {
+                        Theme.Rounded(r, 7f, r.Contains(m) ? Theme.CtrlHover : Theme.Ctrl);
+                        GUI.Label(r, _filters[i], Theme.Seg);
+                    }
+                }
+                if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && r.Contains(m))
+                {
+                    _filter = i;
+                    _scroll = Vector2.zero;
+                    Event.current.Use();
+                }
+                x += w + gap;
+            }
+            return y + h;
         }
 
         private static void HandleResize(Rect grip)

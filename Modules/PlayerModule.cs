@@ -43,6 +43,8 @@ namespace PoppyMenu
             Widgets.SectionBegin("Survival");
             GodMode = Widgets.Toggle("God mode", GodMode, "You take no damage.");
             Safety.Buddha = Widgets.Toggle("Semi-god mode", Safety.Buddha, "You take damage but never drop below 1 HP.");
+            Widgets.HostOnly();
+            Safety.NoFallDamage = Widgets.Toggle("No fall damage", Safety.NoFallDamage);
             InfiniteSkills = Widgets.Toggle("No skill cooldowns", InfiniteSkills);
             ItemsModule.NoEquipmentCooldown = Widgets.Toggle("No equipment cooldown", ItemsModule.NoEquipmentCooldown);
             Widgets.SectionEnd();
