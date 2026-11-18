@@ -8,7 +8,7 @@ namespace PoppyMenu
     public class PoppyPlugin : BaseUnityPlugin
     {
         internal const string Guid = "com.poppy.poppymenuenchanced";
-        internal const string Version = "2.7.0";
+        internal const string Version = "2.7.1";
 
         internal static PoppyPlugin Instance { get; private set; }
 
@@ -26,7 +26,7 @@ namespace PoppyMenu
             MovementModule.Init();
             BindStore.Load();
             MacroStore.Load();
-            HomeLayoutStore.Load();
+            FeaturedStore.Load();
             MacroStore.MigrateReferences();
 
             var go = new GameObject("PoppyMenu");

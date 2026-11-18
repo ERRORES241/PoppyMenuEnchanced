@@ -129,10 +129,11 @@ namespace PoppyMenu
             return name;
         }
 
-        internal override void DrawMenu()
+        // Settings / Configs
+        internal static void DrawConfigs()
         {
-            // Profiles are read from disk; keep the menu search from doing that every frame.
-            if (Widgets.Searching) return;
+            // Profiles are read from disk; keep the menu search and the Featured tab from doing that every frame.
+            if (Widgets.Searching || Widgets.Only != null) return;
 
             Widgets.SectionBegin("Configs");
             Widgets.Note("A config remembers which features are on and your aimbot, ESP and movement settings.");

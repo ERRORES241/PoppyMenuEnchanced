@@ -121,7 +121,8 @@ namespace PoppyMenu
             }
         }
 
-        internal override void DrawMenu()
+        // Player / Stats
+        internal static void DrawStats()
         {
             Widgets.SectionBegin("Modifiers");
 

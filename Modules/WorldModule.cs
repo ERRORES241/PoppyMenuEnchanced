@@ -116,31 +116,37 @@ namespace PoppyMenu
 
         internal override void OnUnload() => RestoreTime();
 
-        internal override void DrawMenu()
+        // World / Run
+        internal static void DrawTime()
         {
             Widgets.SectionBegin("Time");
-            FreezeMatch = Widgets.Toggle("Freeze game", FreezeMatch, "Everything stops, you too. Host or solo.");
+            Widgets.HostOnly();
+            FreezeMatch = Widgets.Toggle("Freeze game", FreezeMatch, "Everything stops, you too.");
             FreezeTimer = Widgets.Toggle("Freeze timer", FreezeTimer, "The run clock stops, so difficulty stops rising. Enemies still move.");
             TimeScale = Widgets.Slider("Game speed", TimeScale, 0.1f, 3f, format: "0.##x");
             Widgets.Buttons("Quick set", null, ("0.25x", () => TimeScale = 0.25f), ("1x", () => TimeScale = 1f), ("2x", () => TimeScale = 2f));
             Widgets.SectionEnd();
+        }
 
-            Widgets.SectionBegin("Enemies");
+        // World / Enemies
+        internal static void DrawEnemies()
+        {
+            Widgets.SectionBegin("Enemies", run: true);
+            Widgets.HostOnly();
+            Safety.NoEnemies = Widgets.Toggle("No enemies", Safety.NoEnemies, "Enemies die as they spawn.");
             Widgets.DangerButton("Kill all enemies", () => NetUtil.Do(PoppyOp.KillAllEnemies));
             Widgets.SectionEnd();
+        }
 
+        // World / Stage
+        internal static void DrawShrines()
+        {
             Widgets.SectionBegin("Shrines");
+            Widgets.HostOnly();
             GuaranteedShrineChance = Widgets.Toggle("Shrine of Chance always pays", GuaranteedShrineChance,
-                "Every purchase drops an item. Host or solo.");
+                "Every purchase drops an item.");
             InfiniteShrineChance = Widgets.Toggle("Unlimited Shrine of Chance uses", InfiniteShrineChance,
                 "The shrine stays open after its usual number of uses.");
-            Widgets.SectionEnd();
-
-            Widgets.SectionBegin("Safety");
-            Safety.NoEnemies = Widgets.Toggle("No enemies", Safety.NoEnemies, "Enemies die as they spawn. Host or solo.");
-            Safety.LockExp = Widgets.Toggle("No experience gain", Safety.LockExp, "Host or solo.");
-            Safety.PreventProfileWriting = Widgets.Toggle("Don't save profile", Safety.PreventProfileWriting,
-                "Unlocks and stats from this session stay out of your save.");
             Widgets.SectionEnd();
         }
     }

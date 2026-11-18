@@ -79,16 +79,9 @@ namespace PoppyMenu
             catch { }
         }
 
-        internal override void DrawMenu()
+        // Visuals
+        internal static void DrawVisuals()
         {
-            Widgets.SectionBegin("Camera");
-            FovOverride = Widgets.Toggle("Custom FOV", FovOverride);
-            if (FovOverride)
-            {
-                FovValue = Widgets.Slider("FOV", FovValue, 60f, 140f, format: "0\u00B0");
-            }
-            Widgets.SectionEnd();
-
             Widgets.SectionBegin("ESP");
             EspMobs = Widgets.Toggle("Enemies", EspMobs);
             EspInteractables = Widgets.Toggle("Interactables", EspInteractables, "Chests, shrines, printers and other things you can use.");
@@ -113,6 +106,14 @@ namespace PoppyMenu
             FontSize = Widgets.Slider("Font size", FontSize, 8f, 24f, format: "0");
             MaxDistance = Widgets.Slider("Max distance", MaxDistance, 0f, 500f, "0 = no limit.", "0 m");
             MarkerSize = Widgets.Slider("Marker size", MarkerSize, 2f, 16f, format: "0");
+            Widgets.SectionEnd();
+
+            Widgets.SectionBegin("Camera");
+            FovOverride = Widgets.Toggle("Custom FOV", FovOverride);
+            if (FovOverride)
+            {
+                FovValue = Widgets.Slider("FOV", FovValue, 60f, 140f, format: "0\u00B0");
+            }
             Widgets.SectionEnd();
         }
 

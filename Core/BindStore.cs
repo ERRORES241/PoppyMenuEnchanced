@@ -24,6 +24,20 @@ namespace PoppyMenu
                 Log.Error("Bind load failed: " + e);
                 Binds = new List<Bind>();
             }
+            MigrateTabs();
+        }
+
+        // Tabs renamed in 2.7.1: Players is now Lobby, Fun moved into Combat, Keybinds into Settings.
+        private static void MigrateTabs()
+        {
+            bool changed = false;
+            foreach (Bind b in Binds)
+            {
+                if (b == null) continue;
+                string to = b.ActionId == "tab.players" ? "tab.lobby" : b.ActionId == "tab.fun" ? "tab.combat" : b.ActionId == "tab.keybinds" ? "tab.settings" : null;
+                if (to != null) { b.ActionId = to; changed = true; }
+            }
+            if (changed) Save();
         }
 
         internal static void Save()
@@ -32,9 +46,15 @@ namespace PoppyMenu
             catch (System.Exception e) { Log.Error("Bind save failed: " + e); }
         }
 
-        internal static void Add(KeyCode key, string actionId) { Binds.Add(new Bind { Key = key, ActionId = actionId }); Save(); }
-        internal static void Remove(Bind b) { if (Binds.Remove(b)) Save(); }
-        internal static void Clear() { Binds.Clear(); Save(); }
+        // One key per action: binding again replaces the old key.
+        internal static void Set(string actionId, KeyCode key)
+        {
+            Binds.RemoveAll(b => b == null || b.ActionId == actionId);
+            if (key != KeyCode.None) Binds.Add(new Bind { Key = key, ActionId = actionId });
+            Save();
+        }
+
+        internal static void Unset(string actionId) { if (Binds.RemoveAll(b => b != null && b.ActionId == actionId) > 0) Save(); }
 
         internal static KeyCode KeyFor(string actionId)
         {

@@ -10,7 +10,8 @@ namespace PoppyMenu
         private static int _expanded = -1;
         private static Macro _pendingDelete;
 
-        internal override void DrawMenu()
+        // Settings / Macros
+        internal static void DrawMacros()
         {
             Widgets.SectionBegin("Macros");
             Widgets.Note("A macro runs a list of steps in one go: items, buffs, money, spawns, features. Run it from here or bind it to a key.");
@@ -28,6 +29,12 @@ namespace PoppyMenu
             }
             Widgets.EndRow();
             }
+            Widgets.SectionEnd();
+
+            Widgets.SectionBegin("Built-in", run: true);
+            Widgets.Button("Mid-game loadout", "30 random items and $1,000.", () => ActionRegistry.Run("macro.midgame"));
+            Widgets.Button("End-game loadout", "69 random items, a boss item and $10,000.", () => ActionRegistry.Run("macro.lategame"));
+            Widgets.Button("Zoom items", "20 Paul's Goat Hoof and 200 Hopoo Feathers.", () => ActionRegistry.Run("macro.dtzoom"));
             Widgets.SectionEnd();
 
             if (MacroStore.Macros.Count == 0)
@@ -51,13 +58,10 @@ namespace PoppyMenu
                     Widgets.EndRow();
                 }
 
-                KeyCode key = BindStore.KeyFor(MacroStore.BindKey(m));
-                string info = m.Steps.Count + (m.Steps.Count == 1 ? " step" : " steps") +
-                              (key != KeyCode.None ? ", bound to [" + key + "]" : "");
+                string info = m.Steps.Count + (m.Steps.Count == 1 ? " step." : " steps.") + " Right-click to bind a key.";
                 Macro target = m;
-                Widgets.Buttons(m.Name, Rebind.IsActive ? "Press a key or mouse button. Esc cancels." : info,
-                    ("Run now", () => MacroStore.Run(target.Id)),
-                    ("Bind key", () => Rebind.Capture(kc => BindStore.Add(kc, MacroStore.BindKey(target)))));
+                Widgets.BindsTo(MacroStore.BindKey(m), m.Name);
+                Widgets.Buttons(m.Name, info, ("Run now", () => MacroStore.Run(target.Id)));
 
                 if (_expanded == i) DrawEditor(m);
                 Widgets.SectionEnd();

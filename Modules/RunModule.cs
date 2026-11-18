@@ -12,9 +12,10 @@ namespace PoppyMenu
         private static int _minutes;
         private static int _teamLevel = 1;
 
-        internal override void DrawMenu()
+        // World / Run, after the Time section
+        internal static void DrawRun()
         {
-            if (!PlayerContext.InGame || Run.instance == null) { Widgets.EmptyState("Start a run first."); return; }
+            if (!PlayerContext.InGame || Run.instance == null) { Widgets.EmptyState("Run details and artifacts show up during a run."); return; }
 
             Run run = Run.instance;
 
@@ -25,22 +26,15 @@ namespace PoppyMenu
 
             _stages = Widgets.StepperAction("Stages cleared", _stages, 1, 0, 200, "Set", v => NetUtil.Do(PoppyOp.SetStagesCleared, i1: v));
             _minutes = Widgets.StepperAction("Run time (minutes)", _minutes, 1, 0, 600, "Set", v => NetUtil.Do(PoppyOp.SetRunTime, f1: v * 60f),
-                "Difficulty grows with run time. To stop the clock, use Freeze timer on the World page.");
-            Widgets.SectionEnd();
-
-            Widgets.SectionBegin("Level");
+                "Difficulty grows with run time. To stop the clock, use Freeze timer above.");
             _teamLevel = Widgets.StepperAction("Team level", _teamLevel, 1, 1, 99999, "Set",
                 v => NetUtil.Do(PoppyOp.SetTeamLevel, i1: (int)TeamIndex.Player, i2: v));
-            Widgets.SectionEnd();
-
-            Widgets.SectionBegin("Stage");
-            Widgets.PickerButton("Go to scene", "Scenes", SceneRows);
             Widgets.SectionEnd();
 
             DrawArtifacts();
         }
 
-        private static List<ListPicker.Row> SceneRows()
+        internal static List<ListPicker.Row> SceneRows()
         {
             var rows = new List<ListPicker.Row>();
             var defs = SceneCatalog.allSceneDefs;

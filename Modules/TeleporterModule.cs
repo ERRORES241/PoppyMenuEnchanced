@@ -30,17 +30,22 @@ namespace PoppyMenu
             return false;
         }
 
-        internal override void DrawMenu()
+        // World / Stage
+        internal static void DrawStage()
         {
-            if (!PlayerContext.InGame) { Widgets.EmptyState("Start a run first."); return; }
-
-            Widgets.SectionBegin("Teleporter");
-            TeleporterInteraction tp = TeleporterInteraction.instance;
-            Widgets.Value("Charge", tp != null ? Mathf.FloorToInt(tp.chargeFraction * 100f) + "%" : "No teleporter");
+            Widgets.SectionBegin("Teleporter", run: true);
+            TeleporterInteraction tp = PlayerContext.InGame ? TeleporterInteraction.instance : null;
+            if (PlayerContext.InGame)
+                Widgets.Value("Charge", tp != null ? Mathf.FloorToInt(tp.chargeFraction * 100f) + "%" : "No teleporter");
             InstaCharge = Widgets.Toggle("Instant charge", InstaCharge,
                 "Also charges Void Fields cells, Void Locus signals and moon pillars.");
-            Widgets.Button("Skip stage", () => NetUtil.Do(PoppyOp.SkipStage));
             Widgets.Button("Add Mountain Shrine", "Same as using a Shrine of the Mountain: one more boss, more loot.", () => NetUtil.Do(PoppyOp.AddMountainShrine));
+            Widgets.Button("Spawn all portals", "Every destination portal appears around you right away.", () => ActionRegistry.Run("tp.portals"));
+            Widgets.SectionEnd();
+
+            Widgets.SectionBegin("Stage", run: true);
+            Widgets.Button("Skip stage", () => NetUtil.Do(PoppyOp.SkipStage));
+            Widgets.PickerButton("Go to scene", "Scenes", RunModule.SceneRows);
             Widgets.SectionEnd();
         }
     }

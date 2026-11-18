@@ -24,12 +24,26 @@ namespace PoppyMenu
         internal static int Matches;
         internal static int OpenSections;
 
+        // "Tab/Page" of the page being drawn; rows are keyed "Tab/Page/Label" for Featured.
+        internal static string PageId;
+        internal static string RowKey(string label) => PageId + "/" + label;
+
+        // Featured tab: every page is drawn, but only rows whose key is in this set show up,
+        // all inside the one section the Featured page opened.
+        internal static HashSet<string> Only;
+        private static bool Filtering => Searching || Only != null;
+
         private static string _pendingPage;
         private static string _sectionTitle;
         private static bool _inSection, _sectionOpen, _firstSectionOnPage;
         private static int _rowsInSection;
         private static float _rowWidth;
         private static int _fieldCounter;
+
+        // Row state set by Show and used by Row: its key, whether it needs the host, whether it is dimmed.
+        private static bool _sectionRun, _nextHost, _rowHost, _rowOff, _dimmed;
+        private static string _rowKey, _rowLabel, _nextBindId, _nextBindName, _rowBindId, _rowBindName;
+        private static Color _undimColor;
 
         // Called by MenuRoot before a page's DrawMenu. pageTitle is shown before the first match while searching.
         internal static void BeginPage(string pageTitle)
@@ -45,12 +59,20 @@ namespace PoppyMenu
         // Closes anything a throwing DrawMenu left open.
         internal static void EndPage()
         {
+            Undim();
             while (OpenSections > 0) { GUILayout.EndVertical(); OpenSections--; }
             _inSection = _sectionOpen = false;
+            _sectionRun = _nextHost = false;
+            _nextBindId = null;
         }
 
-        internal static void SectionBegin(string title)
+        // run: the section's action rows (buttons, pickers) need a run and are dimmed outside one.
+        // Toggles and sliders stay usable, so features can be set up from the main menu.
+        internal static void SectionBegin(string title, bool run = false)
         {
+            Undim();
+            _sectionRun = run;
+            if (Only != null) return;
             if (_sectionOpen) SectionEnd();
             _inSection = true;
             _sectionOpen = false;
@@ -61,6 +83,9 @@ namespace PoppyMenu
 
         internal static void SectionEnd()
         {
+            Undim();
+            _sectionRun = false;
+            if (Only != null) return;
             if (_sectionOpen && OpenSections > 0) { GUILayout.EndVertical(); OpenSections--; }
             _inSection = _sectionOpen = false;
         }
@@ -92,17 +117,60 @@ namespace PoppyMenu
 
         private static bool Match(string s) => !string.IsNullOrEmpty(s) && s.IndexOf(Filter, StringComparison.OrdinalIgnoreCase) >= 0;
 
+        // The next row works only on the host (a server-side hook): it gets a HOST tag and is dimmed for clients.
+        internal static void HostOnly() => _nextHost = true;
+
+        // The next row binds this action instead of the ones ActionRegistry links to its label (macros).
+        internal static void BindsTo(string actionId, string name) { _nextBindId = actionId; _nextBindName = name; }
+
         // Decides whether a row is drawn and opens its section on demand.
-        private static bool Show(string label, string desc, bool searchable = true)
+        // action: a one-shot row (button, picker), dimmed in run-only sections while there is no run.
+        private static bool Show(string label, string desc, bool searchable = true, bool action = false)
         {
-            if (Searching)
+            Undim();
+            bool host = _nextHost;
+            _nextHost = false;
+            string bindId = _nextBindId, bindName = _nextBindName;
+            _nextBindId = null;
+            _rowKey = _rowLabel = null;
+            _rowOff = false;
+
+            if (Only != null)
+            {
+                if (!searchable || !Only.Contains(RowKey(label))) return false;
+                Matches++;
+            }
+            else if (Searching)
             {
                 if (!searchable || (!Match(label) && !Match(desc))) return false;
                 Matches++;
                 EmitPageHeader();
             }
             if (_inSection && !_sectionOpen) OpenSection();
+
+            if (searchable)
+            {
+                _rowKey = RowKey(label);
+                _rowLabel = label;
+            }
+            _rowHost = host;
+            _rowBindId = bindId;
+            _rowBindName = bindName;
+            _rowOff = (action && _sectionRun && !PlayerContext.InGame) || (host && PlayerContext.InGame && !NetUtil.IsServer);
+            if (_rowOff && Repaint)
+            {
+                _undimColor = GUI.color;
+                GUI.color = Anim.Alpha(_undimColor, 0.4f);
+                _dimmed = true;
+            }
             return true;
+        }
+
+        private static void Undim()
+        {
+            if (!_dimmed) return;
+            GUI.color = _undimColor;
+            _dimmed = false;
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -131,14 +199,21 @@ namespace PoppyMenu
 
             Rect r = GUILayoutUtility.GetRect(0f, h, GUILayout.ExpandWidth(true));
             if (Repaint && r.width > 1f) _rowWidth = r.width;
-            float press = pressKey != null ? Anim.PressScale("row:" + pressKey, r, 0.98f) : 1f;
+            float press = pressKey != null && !_rowOff ? Anim.PressScale("row:" + pressKey, r, 0.98f) : 1f;
+
+            Event ev = Event.current;
+            if (_rowKey != null && ev.type == EventType.MouseDown && ev.button == 1 && r.Contains(ev.mousePosition))
+            {
+                RowMenu.OpenRow(_rowKey, _rowLabel, _rowBindId, _rowBindName, GUIUtility.GUIToScreenPoint(ev.mousePosition));
+                ev.Use();
+            }
 
             if (Repaint)
             {
                 if (_sectionOpen && _rowsInSection > 0)
                     Theme.Fill(new Rect(r.x + padX, r.y, r.width - padX * 2f, Mathf.Max(1f, Theme.S(1))), Theme.Line);
                 if (press != 1f) { _rowMatrix = Anim.Begin(r.center, press); _rowScaled = true; }
-                if (hoverable && r.Contains(Event.current.mousePosition))
+                if (hoverable && !_rowOff && r.Contains(Event.current.mousePosition))
                 {
                     float i = Theme.S(3);
                     Theme.HoverBg.Draw(new Rect(r.x + i, r.y + i, r.width - i * 2f, r.height - i * 2f), false, false, false, false);
@@ -147,11 +222,51 @@ namespace PoppyMenu
                 textW = Mathf.Max(Theme.S(60), r.width - padX * 2f - ctrlW - (ctrlW > 0 ? gap : 0));
                 dh = string.IsNullOrEmpty(desc) ? 0f : Theme.Desc.CalcHeight(C(desc), textW) + Theme.S(2);
                 float ty = r.y + (r.height - lh - dh) * 0.5f;
-                GUI.Label(new Rect(r.x + padX, ty, textW, lh), label, labelStyle ?? Theme.Label);
+                GUIStyle ls = labelStyle ?? Theme.Label;
+                GUI.Label(new Rect(r.x + padX, ty, textW, lh), label, ls);
                 if (dh > 0f) GUI.Label(new Rect(r.x + padX, ty + lh + Theme.S(1), textW, dh), desc, Theme.Desc);
+                if (_rowKey != null || _rowHost)
+                    DrawBadges(r.x + padX + Mathf.Min(TextW(ls, label), textW) + Theme.S(7), ty, lh, r.x + padX + textW);
             }
             _rowsInSection++;
             return r;
+        }
+
+        // After the label: HOST tag, the bound key (or "Press a key" while binding) and a star on Featured rows.
+        private static void DrawBadges(float x, float y, float lh, float maxX)
+        {
+            float bh = Theme.S(16), by = Mathf.Round(y + (lh - bh) * 0.5f);
+            if (_rowHost)
+            {
+                float w = TextW(Theme.Pill, "HOST") + Theme.S(10);
+                if (x + w > maxX) return;
+                Rect t = new Rect(x, by, w, bh);
+                Theme.Rounded(t, 4f, new Color(Theme.Warn.r, Theme.Warn.g, Theme.Warn.b, 0.14f));
+                Theme.Pill.normal.textColor = Theme.Warn;
+                GUI.Label(t, "HOST", Theme.Pill);
+                x += w + Theme.S(5);
+            }
+            if (_rowKey == null) return;
+
+            string keys = RowMenu.BadgeText(_rowKey, _rowLabel, _rowBindId);
+            if (keys != null)
+            {
+                float w = TextW(Theme.Kbd, keys) + Theme.S(2);
+                if (x + w > maxX) return;
+                bool waiting = RowMenu.IsBinding(_rowKey);
+                Rect k = new Rect(x, by, w, bh);
+                if (waiting) Theme.Rounded(k, 4f, Theme.AccentSoft);
+                Color prev = Theme.Kbd.normal.textColor;
+                if (waiting) Theme.Kbd.normal.textColor = Theme.Accent;
+                Theme.Kbd.Draw(k, C(keys), false, false, false, false);
+                Theme.Kbd.normal.textColor = prev;
+                x += w + Theme.S(5);
+            }
+            if (Only == null && FeaturedStore.Has(_rowKey))
+            {
+                float s = Theme.S(12);
+                if (x + s <= maxX) Icons.Draw(new Rect(x, Mathf.Round(y + (lh - s) * 0.5f), s, s), Icons.Star, Theme.Accent);
+            }
         }
 
         private static void EndRowPress()
@@ -164,9 +279,9 @@ namespace PoppyMenu
         // GUI.Button that shrinks to 96% while held.
         private static bool PressButton(Rect b, string text, GUIStyle st, string key)
         {
-            float s = Anim.PressScale("btn:" + key, b, 0.96f);
+            float s = _rowOff ? 1f : Anim.PressScale("btn:" + key, b, 0.96f);
             Matrix4x4 m = Anim.Begin(b.center, s);
-            bool hit = GUI.Button(b, text, st);
+            bool hit = GUI.Button(b, text, st) && !_rowOff;
             Anim.End(m);
             return hit;
         }
@@ -181,7 +296,7 @@ namespace PoppyMenu
             if (e.type == EventType.MouseDown && e.button == 0 && r.Contains(e.mousePosition))
             {
                 e.Use();
-                return true;
+                return !_rowOff;
             }
             return false;
         }
@@ -237,7 +352,7 @@ namespace PoppyMenu
 
         internal static void Separator()
         {
-            if (Searching) return;
+            if (Filtering) return;
             GUILayout.Space(Theme.S(6));
         }
 
@@ -251,12 +366,13 @@ namespace PoppyMenu
         internal static bool Action(string text, string desc = null, Kind kind = Kind.Normal) => ActionRow(text, desc, kind, false);
 
         // opensList: the row opens a picker, so it ends with a chevron instead of the play button.
-        private static bool ActionRow(string text, string desc, Kind kind, bool opensList)
+        // id: stable label for search, Featured and keybinds when the shown text changes (ConfirmButton).
+        private static bool ActionRow(string text, string desc, Kind kind, bool opensList, string id = null)
         {
-            if (!Show(text, desc)) return false;
+            if (!Show(id ?? text, desc, true, true)) return false;
             float bw = opensList ? Theme.S(16) : Theme.S(28);
             GUIStyle st = kind == Kind.Primary ? Theme.ActionLabelAccent : kind == Kind.Danger ? Theme.ActionLabelDanger : Theme.ActionLabel;
-            Rect r = Row(text, desc, bw, true, st, text);
+            Rect r = Row(text, desc, bw, true, st, id ?? text);
             if (Repaint)
             {
                 bool hover = r.Contains(Event.current.mousePosition);
@@ -287,7 +403,7 @@ namespace PoppyMenu
         internal static void ConfirmButton(string id, string text, Action onConfirm, string desc = null)
         {
             bool armed = _armed == id;
-            if (Action(armed ? "Click again: " + text : text, desc, Kind.Danger))
+            if (ActionRow(armed ? "Click again: " + text : text, desc, Kind.Danger, false, text))
             {
                 if (armed) { _armed = null; onConfirm?.Invoke(); }
                 else _armed = id;
@@ -303,7 +419,7 @@ namespace PoppyMenu
         // Label + description with several buttons on the right.
         internal static void Buttons(string label, string desc, params (string text, Action onClick)[] buttons)
         {
-            if (!Show(label, desc)) return;
+            if (!Show(label, desc, true, true)) return;
             float gap = Theme.S(6), h = Theme.S(28);
             float w = 0f;
             var widths = new float[buttons.Length];
@@ -321,7 +437,8 @@ namespace PoppyMenu
         // Equal-width buttons across the row, no label.
         internal static void ButtonGrid(params (string text, Action onClick)[] buttons)
         {
-            if (Searching) return;
+            if (Filtering) return;
+            Undim();
             if (_inSection && !_sectionOpen) OpenSection();
             Rect r = GUILayoutUtility.GetRect(0f, Theme.S(44), GUILayout.ExpandWidth(true));
             if (Repaint && _sectionOpen && _rowsInSection > 0)
@@ -381,7 +498,7 @@ namespace PoppyMenu
             switch (e.GetTypeForControl(id))
             {
                 case EventType.MouseDown:
-                    if (e.button == 0 && hit.Contains(e.mousePosition))
+                    if (e.button == 0 && !_rowOff && hit.Contains(e.mousePosition))
                     {
                         GUIUtility.hotControl = id;
                         value = Mathf.Lerp(min, max, Mathf.Clamp01((e.mousePosition.x - track.x) / track.width));
@@ -449,13 +566,13 @@ namespace PoppyMenu
         // Stepper and its action button in one row: "Money   [- 1,000 +] [Give]".
         internal static int StepperAction(string label, int value, int step, int min, int max, string buttonText, Action<int> onClick, string desc = null)
         {
-            if (!Show(label, desc)) return value;
+            if (!Show(label, desc, true, true)) return value;
             float sw = Theme.S(120), h = Theme.S(28), gap = Theme.S(6);
             float bw = Mathf.Max(Theme.S(56), TextW(Theme.Button, buttonText) + Theme.S(4));
             Rect r = Row(label, desc, sw + gap + bw);
             Rect c = Ctrl(r, sw + gap + bw, h);
             value = Stepper(new Rect(c.x, c.y, sw, h), value, step, min, max);
-            if (GUI.Button(new Rect(c.xMax - bw, c.y, bw, h), buttonText, Theme.Button)) onClick?.Invoke(value);
+            if (PressButton(new Rect(c.xMax - bw, c.y, bw, h), buttonText, Theme.Button, label + "/" + buttonText)) onClick?.Invoke(value);
             return value;
         }
 
@@ -697,7 +814,8 @@ namespace PoppyMenu
         // Starts a horizontal row inside the current section. Returns false while searching (skip the row).
         internal static bool BeginRow()
         {
-            if (Searching) return false;
+            if (Filtering) return false;
+            Undim();
             if (_inSection && !_sectionOpen) OpenSection();
             if (_sectionOpen && _rowsInSection > 0)
             {
@@ -741,7 +859,7 @@ namespace PoppyMenu
         // A panel with a single line of text, for pages that have nothing to show yet.
         internal static void EmptyState(string text)
         {
-            if (Searching) return;
+            if (Filtering) return;
             SectionBegin(null);
             Note(text);
             SectionEnd();

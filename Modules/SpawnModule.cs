@@ -37,7 +37,8 @@ namespace PoppyMenu
             return rows;
         }
 
-        internal override void DrawMenu()
+        // World / Enemies
+        internal static void DrawSpawn()
         {
             if (Catalogs.SpawnCards.Count == 0)
             {

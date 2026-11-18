@@ -12,9 +12,10 @@ namespace PoppyMenu
         private static int _giveCount = 1;
         private static string _banArmed;
 
-        internal override void DrawMenu()
+        // Lobby, after the Permissions section
+        internal static void DrawPlayers()
         {
-            if (!PlayerContext.InGame) { Widgets.EmptyState("Start a run first."); return; }
+            if (!PlayerContext.InGame) { Widgets.EmptyState("Players show up here during a run."); return; }
 
             var users = NetworkUser.readOnlyInstancesList;
             if (users == null || users.Count == 0) { Widgets.EmptyState("No players."); return; }

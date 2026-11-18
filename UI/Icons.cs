@@ -8,10 +8,10 @@ namespace PoppyMenu
     // Mipmaps + trilinear keep them clean when drawn at 14-24 px; colour comes from GUI.color.
     internal static class Icons
     {
-        internal const string Crosshair = "crosshair", Eye = "eye", Footprints = "footprints", User = "user",
-            Globe = "globe", Sparkles = "sparkles", Settings = "settings", Search = "search", X = "x",
+        internal const string Crosshair = "crosshair", Eye = "eye", User = "user",
+            Globe = "globe", Settings = "settings", Search = "search", X = "x",
             Left = "chevron-left", Right = "chevron-right", Down = "chevron-down", Minus = "minus", Plus = "plus",
-            Play = "play", Check = "check";
+            Play = "play", Check = "check", Star = "star", Package = "package", Users = "users", Keyboard = "keyboard";
 
         private static readonly Dictionary<string, Texture2D> _cache = new Dictionary<string, Texture2D>();
 
@@ -67,8 +67,9 @@ namespace PoppyMenu
         {
             Texture2D tex = Get(name);
             if (tex == null || Event.current.type != EventType.Repaint) return;
+            // Multiplied, not replaced: fades and dimmed rows set GUI.color around the icon.
             Color prev = GUI.color;
-            GUI.color = color;
+            GUI.color = prev * color;
             GUI.DrawTexture(r, tex, ScaleMode.ScaleToFit, true);
             GUI.color = prev;
         }

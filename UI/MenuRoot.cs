@@ -28,8 +28,8 @@ namespace PoppyMenu
 
         private static readonly Dictionary<string, string> TabIcons = new Dictionary<string, string>
         {
-            { "Aimbot", Icons.Crosshair }, { "Visuals", Icons.Eye }, { "Movement", Icons.Footprints },
-            { "Player", Icons.User }, { "World", Icons.Globe }, { "Fun", Icons.Sparkles }, { "Settings", Icons.Settings },
+            { "Featured", Icons.Star }, { "Player", Icons.User }, { "Items", Icons.Package }, { "Combat", Icons.Crosshair },
+            { "Visuals", Icons.Eye }, { "World", Icons.Globe }, { "Lobby", Icons.Users }, { "Settings", Icons.Settings },
         };
 
         /* ═══════════════════════════════════════════════════════════════
@@ -56,6 +56,7 @@ namespace PoppyMenu
                 Rect moved = GUI.Window(WindowId, _screenRect, DrawWindow, "", GUIStyle.none);
                 _pos = moved.position;
             }
+            else RowMenu.Close();
 
             if (ModConfig.ShowHud.Value && PlayerContext.InGame)
                 DrawHud();
@@ -105,6 +106,7 @@ namespace PoppyMenu
         private static void OpenTab(int i)
         {
             Widgets.CloseDropdown();
+            RowMenu.Close();
             if (ActiveTab != i) _scroll = Vector2.zero;
             ActiveTab = i;
             _search = "";
@@ -122,6 +124,7 @@ namespace PoppyMenu
             ActiveTab = Mathf.Clamp(ActiveTab, 0, _groups.Count - 1);
 
             Widgets.DropdownInput(_screenRect.position, H);
+            RowMenu.Input(_screenRect.position, W, H);
             Rect grip = Widgets.GripRect(W, H);
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && grip.Contains(Event.current.mousePosition))
             {
@@ -136,6 +139,7 @@ namespace PoppyMenu
             DrawContent(new Rect(x0, top, W - x0, H - top - Theme.S(FootH)));
             DrawFooter(x0, W, H);
             Widgets.DropdownDraw(_screenRect.position, H);
+            RowMenu.Draw(_screenRect.position, W, H);
             HandleResize(grip);
 
             GUI.DragWindow(new Rect(x0, 0, W - x0, Theme.S(TopH)));
@@ -171,13 +175,22 @@ namespace PoppyMenu
                 bool active = i == ActiveTab && !searching;
                 bool hover = r.Contains(m);
                 if (!active && hover && Mathf.Abs(hy - i) > 0.5f) Theme.Rounded(r, 10f, Theme.RowHover);
-                if (!TabIcons.TryGetValue(_groups[i].Name, out string icon)) icon = Icons.Sparkles;
+                if (!TabIcons.TryGetValue(_groups[i].Name, out string icon)) icon = Icons.Settings;
                 Icons.DrawCentered(r, icon, 20, active ? Theme.Accent : hover ? Theme.Text : Theme.Faint);
-                Widgets.Tooltip(r, _groups[i].Name);
+                if (hover)
+                {
+                    KeyCode key = BindStore.KeyFor(ActionRegistry.TabId(_groups[i].Name));
+                    Widgets.Tooltip(r, key == KeyCode.None ? _groups[i].Name : _groups[i].Name + "   " + key);
+                }
                 if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && hover)
                 {
                     OpenTab(i);
                     GUI.FocusControl(null);
+                    Event.current.Use();
+                }
+                else if (Event.current.type == EventType.MouseDown && Event.current.button == 1 && hover)
+                {
+                    RowMenu.OpenTab(_groups[i].Name, GUIUtility.GUIToScreenPoint(m));
                     Event.current.Use();
                 }
                 y += Theme.S(44);
@@ -276,7 +289,8 @@ namespace PoppyMenu
                 Widgets.Matches = 0;
                 foreach (TabGroup g in _groups)
                     foreach (PoppyModule p in g.Pages)
-                        DrawPage(p, g.Pages.Count > 1 ? g.Name + "  /  " + p.Name : g.Name);
+                        if (!(p is Page pg && pg.IsFeatured))
+                            DrawPage(g, p, g.Pages.Count > 1 ? g.Name + "  /  " + p.Name : g.Name);
                 if (Widgets.Matches == 0)
                 {
                     GUILayout.Space(Theme.S(16));
@@ -291,7 +305,9 @@ namespace PoppyMenu
                     GUILayout.Label("Start a run to use most features.", Theme.Desc, GUILayout.Height(Theme.S(16)));
                 }
                 TabGroup group = _groups[ActiveTab];
-                DrawPage(group.Pages[group.Page], null);
+                PoppyModule page = group.Pages[group.Page];
+                if (page is Page pg && pg.IsFeatured) DrawFeatured();
+                else DrawPage(group, page, null);
             }
 
             GUILayout.Space(Theme.S(14));
@@ -301,8 +317,9 @@ namespace PoppyMenu
             Widgets.Filter = null;
         }
 
-        private static void DrawPage(PoppyModule page, string title)
+        private static void DrawPage(TabGroup group, PoppyModule page, string title)
         {
+            Widgets.PageId = group.Name + "/" + page.Name;
             Widgets.BeginPage(title);
             try
             {
@@ -315,6 +332,40 @@ namespace PoppyMenu
                 GUILayout.Label("This page failed to draw. See the BepInEx log.", Theme.Label);
                 Log.Error($"{page.Name}.DrawMenu: {e}");
             }
+        }
+
+        // Featured: every page is drawn with only the featured rows let through, in rail order,
+        // all in one panel. Below it, what is on right now.
+        private static void DrawFeatured()
+        {
+            Widgets.BeginPage(null);
+            Widgets.PageId = "Featured/Featured";
+            Widgets.SectionBegin(null);
+            Widgets.Matches = 0;
+            Widgets.Only = FeaturedStore.Keys;
+            try
+            {
+                foreach (TabGroup g in _groups)
+                    foreach (PoppyModule p in g.Pages)
+                    {
+                        if (p is Page pg && pg.IsFeatured) continue;
+                        Widgets.PageId = g.Name + "/" + p.Name;
+                        try { p.DrawMenu(); }
+                        catch (System.Exception e) { Log.Error($"Featured, {p.Name}: {e}"); }
+                    }
+            }
+            finally { Widgets.Only = null; }
+            Widgets.PageId = "Featured/Featured";
+            if (Widgets.Matches == 0) Widgets.Note("Nothing here yet. Right-click any row in the menu and choose Add to Featured.");
+            Widgets.SectionEnd();
+
+            Widgets.SectionBegin("Active now");
+            List<string> fx = ActiveEffects();
+            if (fx.Count == 0) Widgets.Note("Nothing is on.");
+            foreach (string e in fx) Widgets.Label(e);
+            Widgets.DangerButton("Turn everything off", Cheats.DisableAll);
+            Widgets.SectionEnd();
+            Widgets.EndPage();
         }
 
         /* ─────── Footer ────────────────────────────────────────────── */

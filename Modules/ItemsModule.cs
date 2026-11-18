@@ -12,9 +12,10 @@ namespace PoppyMenu
         internal static bool SaleStarCheat;
         internal static int SaleStarDropCount = 5;
 
-        internal override void DrawMenu()
+        // Items / Give
+        internal static void DrawGive()
         {
-            Widgets.SectionBegin("Give");
+            Widgets.SectionBegin("Give", run: true);
             GiveCount = Widgets.IntStepper("Count", GiveCount, 1, 1, 1000, "How many of each item to give.");
 
             Widgets.Button("Give item", () =>
@@ -22,14 +23,17 @@ namespace PoppyMenu
 
             Widgets.PickerButton("Give equipment", "Equipment", EquipRows);
             Widgets.PickerButton("Set key item", "Key items", KeyItemRows);
-            Widgets.Button($"Give all items (x{GiveCount})", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: GiveCount));
+            Widgets.Button("Give all items", GiveCount == 1 ? "One of each." : GiveCount + " of each.", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: GiveCount));
             Widgets.SectionEnd();
+        }
 
-            Widgets.SectionBegin("Inventory");
+        // Items / Inventory
+        internal static void DrawInventory()
+        {
+            Widgets.SectionBegin("Inventory", run: true);
             Widgets.Button("Stack", "Turns each tier into one item, like a Shrine of Order.", () => NetUtil.Do(PoppyOp.StackInventory));
             Widgets.Button("Reroll", "Swaps every item for a random one of the same tier.", () => NetUtil.Do(PoppyOp.RollItems));
             Widgets.Button("Undo", "Reverts the last give all, clear, stack, reroll or key item change.", () => NetUtil.Do(PoppyOp.UndoInventory));
-            NoEquipmentCooldown = Widgets.Toggle("No equipment cooldown", NoEquipmentCooldown);
             Widgets.ConfirmButton("items.clearinv", "Clear inventory", () => NetUtil.Do(PoppyOp.ClearInventory));
             Widgets.SectionEnd();
 

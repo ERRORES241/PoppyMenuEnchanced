@@ -50,11 +50,6 @@ namespace PoppyMenu
                 foreach (CustomStep s in owner.Steps)
                     macros |= MigrateStep(s);
             if (macros) Save();
-
-            bool home = false;
-            foreach (CustomStep s in HomeLayoutStore.Shortcuts)
-                home |= MigrateStep(s);
-            if (home) HomeLayoutStore.Save();
         }
 
         private static bool MigrateStep(CustomStep s)

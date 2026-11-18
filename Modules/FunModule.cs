@@ -93,9 +93,12 @@ namespace PoppyMenu
             }
         }
 
-        internal override void DrawMenu()
+        // Combat / Weapons
+        internal static void DrawRailgunner()
         {
             Widgets.SectionBegin("Railgunner");
+            Aim.TargetWeakPoints = Widgets.Toggle("Aim at weak points", Aim.TargetWeakPoints,
+                "While scoped, the aimbot aims at the red weak points. Hits there always crit.");
             RailgunnerInstaCharge = Widgets.Toggle("Instant ult charge", RailgunnerInstaCharge,
                 "The special is ready to fire with no charge-up.");
             RailgunnerNoUltCooldown = Widgets.Toggle("No ult cooldown", RailgunnerNoUltCooldown,

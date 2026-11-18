@@ -16,6 +16,15 @@ namespace PoppyMenu
 
         internal static PoppyAction Get(string id) => id != null && _byId.TryGetValue(id, out var a) ? a : null;
 
+        private static readonly Dictionary<string, List<PoppyAction>> _byRow = new Dictionary<string, List<PoppyAction>>();
+        private static readonly List<PoppyAction> _none = new List<PoppyAction>();
+
+        // Actions a menu row can bind (usually one; "Teleport now" has two).
+        internal static List<PoppyAction> ForRow(string label) =>
+            label != null && _byRow.TryGetValue(label, out var l) ? l : _none;
+
+        internal static string TabId(string tab) => "tab." + tab.ToLowerInvariant();
+
         internal static void Run(string id)
         {
             PoppyAction a = Get(id);
@@ -31,16 +40,18 @@ namespace PoppyMenu
             Run(id);
         }
 
-        private static void Add(string id, string category, string name, Action fn)
+        private static void Add(string id, string category, string name, Action fn, string row = null)
         {
-            var a = new PoppyAction(id, category, name, fn);
+            var a = new PoppyAction(id, category, name, fn, row);
             _all.Add(a);
             _byId[id] = a;
+            if (!_byRow.TryGetValue(a.Row, out var l)) _byRow[a.Row] = l = new List<PoppyAction>();
+            l.Add(a);
         }
 
         private static void Build()
         {
-            Add("menu.disableAll", "Menu", "Disable everything", Cheats.DisableAll);
+            Add("menu.disableAll", "Menu", "Disable everything", Cheats.DisableAll, "Turn everything off");
 
             Add("player.god", "Player", "God mode", () => PlayerModule.GodMode = !PlayerModule.GodMode);
             Add("player.buddha", "Player", "Semi-god mode", () => Safety.Buddha = !Safety.Buddha);
@@ -54,16 +65,16 @@ namespace PoppyMenu
             Add("move.jump", "Movement", "Jump pack", () => MovementModule.JumpPack = !MovementModule.JumpPack);
             Add("move.bhop", "Movement", "Bunny hop", () => MovementModule.Bhop = !MovementModule.Bhop);
             Add("move.tp_ping_auto", "Movement", "Teleport on ping", MovementModule.ToggleTeleportToPing);
-            Add("move.tp_ping", "Movement", "Teleport to ping", MovementModule.TeleportToCurrentPing);
-            Add("move.tp_cursor", "Movement", "Teleport to cursor", MovementModule.TeleportToCursor);
+            Add("move.tp_ping", "Movement", "Teleport to ping", MovementModule.TeleportToCurrentPing, "Teleport now");
+            Add("move.tp_cursor", "Movement", "Teleport to cursor", MovementModule.TeleportToCursor, "Teleport now");
 
             Add("aim.toggle", "Aimbot", "Aimbot", () => Aim.Enabled = !Aim.Enabled);
             Add("aim.magic", "Aimbot", "Magic bullet", () => Aim.MagicBullet = !Aim.MagicBullet);
 
             Add("items.giveAll", "Items", "Give all items", () => NetUtil.Do(PoppyOp.GiveAllItems, i2: 1));
             Add("items.clear", "Items", "Clear inventory", () => NetUtil.Do(PoppyOp.ClearInventory));
-            Add("items.stack", "Items", "Stack inventory", () => NetUtil.Do(PoppyOp.StackInventory));
-            Add("items.reroll", "Items", "Reroll items", () => NetUtil.Do(PoppyOp.RollItems));
+            Add("items.stack", "Items", "Stack inventory", () => NetUtil.Do(PoppyOp.StackInventory), "Stack");
+            Add("items.reroll", "Items", "Reroll items", () => NetUtil.Do(PoppyOp.RollItems), "Reroll");
             Add("items.noEquipCd", "Items", "No equipment cooldown", () => ItemsModule.NoEquipmentCooldown = !ItemsModule.NoEquipmentCooldown);
 
             Add("combat.killAll", "World", "Kill all enemies", () => NetUtil.Do(PoppyOp.KillAllEnemies));
@@ -115,11 +126,12 @@ namespace PoppyMenu
                 Notify.Push("Zoom items given");
             });
 
-            Add("tab.player", "Open tab", "Player tab", () => MenuRoot.SelectTabByName("Player"));
-            Add("tab.items", "Open tab", "Items tab", () => MenuRoot.SelectTabByName("Items"));
-            Add("tab.players", "Open tab", "Players tab", () => MenuRoot.SelectTabByName("Players"));
-            Add("tab.fun", "Open tab", "Fun tab", () => MenuRoot.SelectTabByName("Fun"));
-            Add("tab.keybinds", "Open tab", "Keybinds tab", () => MenuRoot.SelectTabByName("Keybinds"));
+            // Bound from the right-click menu of a rail icon, not from a row.
+            foreach (string tab in PoppyController.TabNames)
+            {
+                string name = tab;
+                Add(TabId(name), "Open tab", name + " tab", () => MenuRoot.SelectTabByName(name), "#tab");
+            }
         }
 
         private static void GiveRandom(int count, ItemTier? tier)

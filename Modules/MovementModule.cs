@@ -259,7 +259,8 @@ namespace PoppyMenu
             if (_gravityOff) RestoreGravity();
         }
 
-        internal override void DrawMenu()
+        // Player / Movement
+        internal static void DrawMovement()
         {
             Widgets.SectionBegin("Movement");
             Flight = Widgets.Toggle("Flight", Flight, "Move keys to fly, Jump to go up, Left Ctrl to go down. Skills still work.");
@@ -270,7 +271,7 @@ namespace PoppyMenu
             Bhop = Widgets.Toggle("Bunny hop", Bhop, "Hold Jump to jump again the moment you land.");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Teleport");
+            Widgets.SectionBegin("Teleport", run: true);
             TeleportToPing = Widgets.Toggle("Teleport on ping", TeleportToPing,
                 "Every ping you place moves you there.");
             Widgets.Buttons("Teleport now", "Cursor is the spot under the crosshair.", ("To ping", TeleportToCurrentPing), ("To cursor", TeleportToCursor));

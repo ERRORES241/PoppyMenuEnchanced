@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.7.1
+- Tabs regrouped by what you do: Featured, Player (Character, Movement, Stats), Items (Give, Inventory), Combat (Aimbot, Weapons), Visuals, World (Stage, Enemies, Run), Lobby and Settings (General, Macros, Configs). Movement, Fun and the Keybinds page are gone as separate tabs; their rows moved into the tabs above.
+- Featured tab, opened first: the rows you add from any page, plus what is on right now and a button to turn everything off. It starts with God mode, No skill cooldowns, Heal to full, Flight, Give item, Aimbot, enemy ESP, Skip stage and Kill all enemies.
+- Right-click a row to add it to Featured or remove it, and to bind, change or remove its key. Right-click a tab icon to bind a key that opens that tab. The bound key shows next to the row name. Keybinds for the old Players, Fun and Keybinds tabs move to Lobby, Combat and Settings.
+- Rows that only work on the host (Freeze game, No enemies, No experience gain, Magic bullet, the Shrine of Chance options) have a HOST tag and are dimmed when you play as a client. Buttons that need a run are dimmed in the main menu.
+- Mid-game loadout, End-game loadout, Zoom items and Spawn all portals now have rows (Settings > Macros and World > Stage), so they can be run and bound from the menu.
+- Railgunner weak points is now Aim at weak points under Combat > Weapons > Railgunner. Give all items shows its count in the description instead of the name.
+- Icons fade along with dropdowns, toasts and dimmed rows.
+
 ## 2.7.0
 - Updated for the October 2026 game update and DLC4 (GameLibs 1.5.0-r.1, MMHOOK 2026.10.8).
 - Fixed input capture for the new buffered input system; the removed equipment cycle inputs no longer break every physics tick.

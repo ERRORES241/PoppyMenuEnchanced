@@ -8,15 +8,13 @@ namespace PoppyMenu
 
         private static float _pendingScale = -1f;
 
-        internal override void DrawMenu()
+        // Settings / General
+        internal static void DrawGeneral()
         {
-            Widgets.SectionBegin("Keybinds");
-            Widgets.KeybindRow("Menu key", ModConfig.ToggleMenuKey, Rebind.IsActive
+            Widgets.SectionBegin("Menu");
+            Widgets.KeybindRow("Menu key", ModConfig.ToggleMenuKey, Rebind.Listening == ModConfig.ToggleMenuKey
                 ? "Press a key or mouse button. Esc cancels."
-                : "Keys for features are set on the Keybinds page.");
-            Widgets.SectionEnd();
-
-            Widgets.SectionBegin("Appearance");
+                : "To bind a feature, right-click its row.");
             int theme = Widgets.Segmented("Theme", (int)ModConfig.MenuTheme.Value, Theme.ThemeNames);
             if (theme != (int)ModConfig.MenuTheme.Value) ModConfig.MenuTheme.Value = (ThemeKind)theme;
 
@@ -41,11 +39,9 @@ namespace PoppyMenu
                 "Shows what's on while the menu is closed. Drag it to move.");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Multiplayer");
-            ModConfig.AllowClientCheats.Value = Widgets.Toggle("Let clients use the menu", ModConfig.AllowClientCheats.Value,
-                "When you host, players who have this mod can use it in your game. Off by default.");
-            ModConfig.RequireServerForCheats.Value = Widgets.Toggle("Skip host actions as client", ModConfig.RequireServerForCheats.Value,
-                "When you're not the host, actions that need the host are skipped instead of sent.");
+            Widgets.SectionBegin("Game");
+            Safety.PreventProfileWriting = Widgets.Toggle("Don't save profile", Safety.PreventProfileWriting,
+                "Unlocks and stats from this session stay out of your save.");
             Widgets.SectionEnd();
 
             Widgets.SectionBegin("Maintenance");
@@ -56,6 +52,17 @@ namespace PoppyMenu
             Widgets.SectionBegin("About");
             Widgets.Value("Poppy Menu Enhanced", "v" + PoppyPlugin.Version);
             Widgets.Note("Cheat and debug menu for Risk of Rain 2. Meant for solo play and private lobbies. Icons: Lucide (ISC).");
+            Widgets.SectionEnd();
+        }
+
+        // Lobby, before the player list
+        internal static void DrawPermissions()
+        {
+            Widgets.SectionBegin("Permissions");
+            ModConfig.AllowClientCheats.Value = Widgets.Toggle("Let clients use the menu", ModConfig.AllowClientCheats.Value,
+                "When you host, players who have this mod can use it in your game. Off by default.");
+            ModConfig.RequireServerForCheats.Value = Widgets.Toggle("Skip host actions as client", ModConfig.RequireServerForCheats.Value,
+                "When you're not the host, actions that need the host are skipped instead of sent.");
             Widgets.SectionEnd();
         }
     }

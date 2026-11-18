@@ -12,7 +12,8 @@ namespace PoppyMenu
 
         internal override string Name => "Aimbot";
 
-        internal override void DrawMenu()
+        // Combat / Aimbot
+        internal static void DrawAimbot()
         {
             Widgets.SectionBegin("Aimbot");
             Aim.Enabled = Widgets.Toggle("Aimbot", Aim.Enabled, ModConfig.SilentAimKey.Value,
@@ -26,8 +27,6 @@ namespace PoppyMenu
             Aim.Sorting = Widgets.Dropdown("Priority", Aim.Sorting, Priorities);
 
             Aim.PrioritizeBosses = Widgets.Toggle("Bosses first", Aim.PrioritizeBosses);
-            Aim.TargetWeakPoints = Widgets.Toggle("Railgunner weak points", Aim.TargetWeakPoints,
-                "While scoped, aims at the red weak points. Hits there always crit.");
             Aim.Sticky = Widgets.Toggle("Sticky target", Aim.Sticky, "Stays on one target until it dies or leaves range.");
             Aim.RequireLoS = Widgets.Toggle("Line of sight only", Aim.RequireLoS, "Ignores targets behind walls.");
 
@@ -37,19 +36,21 @@ namespace PoppyMenu
                 Aim.Fov = Widgets.Slider("FOV size", Aim.Fov, 1f, 180f, format: "0°");
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Projectiles");
-            Aim.MagicBullet = Widgets.Toggle("Magic bullet", Aim.MagicBullet,
-                "Your projectiles turn toward the target and your shots go through walls. Host or solo.");
-            Widgets.SectionEnd();
-
-            Widgets.SectionBegin("Weapon");
-            Aim.NoSpread = Widgets.Toggle("No spread", Aim.NoSpread, "Bullets and projectiles go exactly where you aim.");
-            Aim.NoRecoil = Widgets.Toggle("No recoil", Aim.NoRecoil, "The camera doesn't kick when you shoot.");
-            Widgets.SectionEnd();
-
             Widgets.SectionBegin("On screen");
             Aim.Highlight = Widgets.Toggle("Mark target", Aim.Highlight, "Shows which enemy the aimbot is locked on.");
             Aim.ShowFovCircle = Widgets.Toggle("Show FOV circle", Aim.ShowFovCircle);
+            Widgets.SectionEnd();
+        }
+
+        // Combat / Weapons (Railgunner rows are in FunModule)
+        internal static void DrawWeapon()
+        {
+            Widgets.SectionBegin("Weapon");
+            Aim.NoSpread = Widgets.Toggle("No spread", Aim.NoSpread, "Bullets and projectiles go exactly where you aim.");
+            Aim.NoRecoil = Widgets.Toggle("No recoil", Aim.NoRecoil, "The camera doesn't kick when you shoot.");
+            Widgets.HostOnly();
+            Aim.MagicBullet = Widgets.Toggle("Magic bullet", Aim.MagicBullet,
+                "Your projectiles turn toward the target and your shots go through walls.");
             Widgets.SectionEnd();
         }
     }

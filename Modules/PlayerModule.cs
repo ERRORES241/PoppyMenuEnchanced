@@ -37,35 +37,43 @@ namespace PoppyMenu
                 PlayerContext.Skills.ApplyAmmoPack();
         }
 
-        internal override void DrawMenu()
+        // Player / Character
+        internal static void DrawCharacter()
         {
             Widgets.SectionBegin("Survival");
             GodMode = Widgets.Toggle("God mode", GodMode, "You take no damage.");
             Safety.Buddha = Widgets.Toggle("Semi-god mode", Safety.Buddha, "You take damage but never drop below 1 HP.");
             InfiniteSkills = Widgets.Toggle("No skill cooldowns", InfiniteSkills);
+            ItemsModule.NoEquipmentCooldown = Widgets.Toggle("No equipment cooldown", ItemsModule.NoEquipmentCooldown);
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Health");
+            Widgets.SectionBegin("Health", run: true);
             Widgets.PrimaryButton("Heal to full", () => NetUtil.Do(PoppyOp.HealFull));
             _heal = Widgets.StepperAction("Heal amount", _heal, 100, 1, 1000000000, "Heal", v => NetUtil.Do(PoppyOp.HealAmount, f1: v));
             _hurt = Widgets.StepperAction("Hurt amount", _hurt, 50, 1, 1000000000, "Hurt", v => NetUtil.Do(PoppyOp.HurtBody, f1: v));
             Widgets.Button("Respawn", () => NetUtil.Do(PoppyOp.Respawn));
             Widgets.SectionEnd();
 
-            Widgets.SectionBegin("Economy");
+            Widgets.SectionBegin("Buffs and DoTs", run: true);
+            _buffDuration = Widgets.Slider("Buff duration", _buffDuration, 0f, 60f, "0 = permanent.", "0 s");
+            Widgets.PickerButton("Give buff", "Buffs", BuffRows);
+            Widgets.PickerButton("Apply DoT", "Damage over time", DotRows);
+            Widgets.DangerButton("Remove all buffs", () => NetUtil.Do(PoppyOp.RemoveAllBuffs));
+            Widgets.SectionEnd();
+        }
+
+        // Items / Give
+        internal static void DrawEconomy()
+        {
+            Widgets.SectionBegin("Money and XP", run: true);
             ModConfig.GiveMoneyAmount.Value = Widgets.StepperAction("Money", ModConfig.GiveMoneyAmount.Value, 1000, 0, 1000000000, "Give",
                 v => NetUtil.Do(PoppyOp.GiveMoney, i1: v));
             ModConfig.GiveXpAmount.Value = Widgets.StepperAction("Experience", ModConfig.GiveXpAmount.Value, 100, 0, 1000000000, "Give",
                 v => NetUtil.Do(PoppyOp.GiveXp, i1: v));
             ModConfig.GiveCoinsAmount.Value = Widgets.StepperAction("Lunar coins", ModConfig.GiveCoinsAmount.Value, 5, 0, 100000, "Give",
                 v => NetUtil.Do(PoppyOp.GiveLunar, i1: v));
-            Widgets.SectionEnd();
-
-            Widgets.SectionBegin("Buffs and DoTs");
-            _buffDuration = Widgets.Slider("Buff duration", _buffDuration, 0f, 60f, "0 = permanent.", "0 s");
-            Widgets.PickerButton("Give buff", "Buffs", BuffRows);
-            Widgets.PickerButton("Apply DoT", "Damage over time", DotRows);
-            Widgets.DangerButton("Remove all buffs", () => NetUtil.Do(PoppyOp.RemoveAllBuffs));
+            Widgets.HostOnly();
+            Safety.LockExp = Widgets.Toggle("No experience gain", Safety.LockExp);
             Widgets.SectionEnd();
         }
 

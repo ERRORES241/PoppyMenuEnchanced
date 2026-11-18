@@ -7,6 +7,9 @@ namespace PoppyMenu
     {
         private readonly List<PoppyModule> _modules = new List<PoppyModule>();
         private readonly List<TabGroup> _groups = new List<TabGroup>();
+
+        // Rail order. ActionRegistry registers an "open tab" action for each.
+        internal static readonly string[] TabNames = { "Featured", "Player", "Items", "Combat", "Visuals", "World", "Lobby", "Settings" };
         private bool _catalogsTried;
         private string _lastScene;
         private static bool _startupConfigApplied;
@@ -15,15 +18,35 @@ namespace PoppyMenu
 
         private void Awake()
         {
-            _groups.Add(new TabGroup("Aimbot", new AimbotModule()));
-            _groups.Add(new TabGroup("Visuals", new RenderModule()));
-            _groups.Add(new TabGroup("Movement", new MovementModule()));
-            _groups.Add(new TabGroup("Player", new PlayerModule(), new StatsModule(), new ItemsModule()));
-            _groups.Add(new TabGroup("World", new WorldModule(), new TeleporterModule(), new SpawnModule(), new RunModule(), new PlayersModule()));
-            _groups.Add(new TabGroup("Fun", new FunModule()));
-            _groups.Add(new TabGroup("Settings", new ConfigsModule(), new KeybindsModule(), new SettingsModule(), new MacrosModule()));
+            // Modules hold the feature logic (Tick, overlays); pages only arrange their sections.
+            _modules.AddRange(new PoppyModule[]
+            {
+                new PlayerModule(), new MovementModule(), new StatsModule(), new ItemsModule(), new AimbotModule(), new FunModule(),
+                new RenderModule(), new TeleporterModule(), new SpawnModule(), new WorldModule(), new RunModule(), new PlayersModule(),
+                new SettingsModule(), new MacrosModule(), new ConfigsModule(),
+            });
 
-            foreach (TabGroup g in _groups) _modules.AddRange(g.Pages);
+            _groups.Add(new TabGroup("Featured", new Page("Featured")));
+            _groups.Add(new TabGroup("Player",
+                new Page("Character", PlayerModule.DrawCharacter),
+                new Page("Movement", MovementModule.DrawMovement),
+                new Page("Stats", StatsModule.DrawStats)));
+            _groups.Add(new TabGroup("Items",
+                new Page("Give", ItemsModule.DrawGive, PlayerModule.DrawEconomy),
+                new Page("Inventory", ItemsModule.DrawInventory)));
+            _groups.Add(new TabGroup("Combat",
+                new Page("Aimbot", AimbotModule.DrawAimbot),
+                new Page("Weapons", AimbotModule.DrawWeapon, FunModule.DrawRailgunner)));
+            _groups.Add(new TabGroup("Visuals", new Page("ESP", RenderModule.DrawVisuals)));
+            _groups.Add(new TabGroup("World",
+                new Page("Stage", TeleporterModule.DrawStage, WorldModule.DrawShrines),
+                new Page("Enemies", SpawnModule.DrawSpawn, WorldModule.DrawEnemies),
+                new Page("Run", WorldModule.DrawTime, RunModule.DrawRun)));
+            _groups.Add(new TabGroup("Lobby", new Page("Players", SettingsModule.DrawPermissions, PlayersModule.DrawPlayers)));
+            _groups.Add(new TabGroup("Settings",
+                new Page("General", SettingsModule.DrawGeneral),
+                new Page("Macros", MacrosModule.DrawMacros),
+                new Page("Configs", ConfigsModule.DrawConfigs)));
 
             gameObject.AddComponent<CursorOverlay>();
         }
